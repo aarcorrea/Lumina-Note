@@ -24,6 +24,7 @@ import { useNoteIndexStore } from "@/stores/useNoteIndexStore";
 // Legacy CommandPalette import removed — Cmd+P now goes through the
 // unified <CommandMenuProvider/> in src/components/ui.
 import { TabBar } from "@/components/layout/TabBar";
+import { MobileHeader } from "@/components/layout/MobileHeader";
 import { DiffView } from "@/components/effects/DiffView";
 import { ExtensionsCenterView } from "@/components/extensions/ExtensionsCenterModal";
 import { CommandMenu, CommandMenuProvider } from "@/components/ui";
@@ -338,6 +339,7 @@ function App() {
       ensureOpenTab: state.ensureOpenTab,
       openExtensionsCenterTab: state.openExtensionsCenterTab,
       openGraphTab: state.openGraphTab,
+      openAIMainTab: state.openAIMainTab,
     })),
   );
   const pendingDiff = useAIStore((state) => state.pendingDiff);
@@ -1321,7 +1323,27 @@ function App() {
           >
             <PanelErrorBoundary label="Editor">
               <div className="flex h-full min-h-0 flex-col bg-popover dark:bg-background">
-                <TabBar />
+                {!isMobile ? (
+                  <TabBar />
+                ) : (
+                  <MobileHeader
+                    activeTab={activeTab}
+                    currentFile={currentFile}
+                    onToggleSidebar={() => {
+                      setRightSidebarOpen(false);
+                      setLeftSidebarOpen(!leftSidebarOpen);
+                    }}
+                    onToggleOutline={() => {
+                      setLeftSidebarOpen(false);
+                      setRightSidebarOpen(!rightSidebarOpen);
+                    }}
+                    onOpenSearch={() =>
+                      window.dispatchEvent(
+                        new CustomEvent("open-command-menu"),
+                      )
+                    }
+                  />
+                )}
                 <div className="flex min-h-0 flex-1 overflow-hidden">
                   {pendingDiff && activeTab?.type !== "ai-chat" ? (
                     // Show diff view when there's a pending AI edit (non chat context)
@@ -1587,10 +1609,13 @@ function App() {
               type="button"
               onClick={() => {
                 setLeftSidebarOpen(false);
-                setRightSidebarOpen(!rightSidebarOpen);
+                setRightSidebarOpen(false);
+                openAIMainTab();
               }}
               className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                rightSidebarOpen ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+                activeTab?.type === "ai-chat"
+                  ? "text-primary font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               aria-label={t.common.aiChatTab || "AI Chat"}
             >

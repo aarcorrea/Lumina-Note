@@ -82,7 +82,7 @@ class LuminaNativeBridge(
             "list_workspace" -> fsHandler.listWorkspace(args)
             "list_directory" -> fsHandler.listDirectory(args)
             "list_dir_shallow" -> fsHandler.listDirShallow(args)
-            "walk_paths" -> fsHandler.walkPaths(args)
+            "walk_paths", "fs_walk_paths" -> fsHandler.walkPaths(args)
             "estimate_dir_size" -> fsHandler.estimateDirSize(args)
             "exists" -> fsHandler.exists(args)
             "plugin:fs|stat", "plugin:fs|lstat" -> fsHandler.stat(args)
@@ -193,6 +193,9 @@ class LuminaNativeBridge(
                 storeHandler.set("agent_auto_approve", args.optBoolean("value"))
                 null
             }
+            "agent_test_provider" -> {
+                testAgentProvider(args)
+            }
 
             // Stubs / No-ops
             "set_dirty_state", "set_proxy_config", "test_proxy_connection",
@@ -246,5 +249,78 @@ class LuminaNativeBridge(
         mainHandler.post {
             webView.evaluateJavascript(js, null)
         }
+    }
+
+    private fun testAgentProvider(args: JSONObject): JSONObject {
+        val result = JSONObject()
+        val settings = args.optJSONObject("settings")
+        val apiKey = settings?.optString("apiKey") ?: ""
+        var baseUrl = settings?.optString("baseUrl") ?: ""
+        val providerId = args.optString("provider_id")
+
+        if (apiKey.isBlank() && providerId != "ollama") {
+            result.put("success", false)
+            result.put("error", "API Key is required")
+            return result
+        }
+
+        if (baseUrl.isBlank()) {
+            baseUrl = when (providerId) {
+                "deepseek" -> "https://api.deepseek.com"
+                "groq" -> "https://api.groq.com/openai/v1"
+                "moonshot" -> "https://api.moonshot.cn/v1"
+                "openrouter" -> "https://openrouter.ai/api/v1"
+                "ollama" -> "http://127.0.0.1:11434/v1"
+                "anthropic" -> "https://api.anthropic.com"
+                "google" -> "https://generativelanguage.googleapis.com"
+                else -> "https://api.openai.com/v1"
+            }
+        }
+
+        val startTime = System.currentTimeMillis()
+        try {
+            val client = okhttp3.OkHttpClient.Builder()
+                .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
+
+            val requestBuilder = okhttp3.Request.Builder()
+            val testUrl = if (providerId == "anthropic") {
+                "$baseUrl/v1/models"
+            } else if (providerId == "google") {
+                "$baseUrl/v1beta/models?key=$apiKey"
+            } else {
+                if (baseUrl.endsWith("/chat/completions")) {
+                    baseUrl.replace("/chat/completions", "/models")
+                } else {
+                    "${baseUrl.trimEnd('/')}/models"
+                }
+            }
+
+            requestBuilder.url(testUrl).get()
+            if (apiKey.isNotBlank()) {
+                if (providerId == "anthropic") {
+                    requestBuilder.header("x-api-key", apiKey)
+                    requestBuilder.header("anthropic-version", "2023-06-01")
+                } else if (providerId != "google") {
+                    requestBuilder.header("Authorization", "Bearer $apiKey")
+                }
+            }
+
+            val response = client.newCall(requestBuilder.build()).execute()
+            val latency = System.currentTimeMillis() - startTime
+            if (response.isSuccessful || response.code in 200..399) {
+                result.put("success", true)
+                result.put("latencyMs", latency)
+            } else {
+                result.put("success", false)
+                result.put("error", "HTTP ${response.code}: ${response.message}")
+            }
+            response.close()
+        } catch (e: Exception) {
+            result.put("success", false)
+            result.put("error", e.message ?: "Connection failed")
+        }
+        return result
     }
 }

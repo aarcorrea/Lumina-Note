@@ -38,7 +38,9 @@ import {
   getOpencodeClient,
   resetOpencodeClient,
   setDefaultDirectory,
+  isOpencodeSupported,
 } from "@/services/opencode/client";
+import { streamDirectLLM } from "@/services/llm/directStream";
 import { useFileStore } from "@/stores/useFileStore";
 import { getAIConfig } from "@/services/ai/ai";
 import { waitForAIConfigSync } from "@/services/ai/config-sync";
@@ -55,6 +57,47 @@ import { useAIStore, type RuntimeModelSelection } from "@/stores/useAIStore";
 import { invoke } from "@/lib/host";
 
 const logOpencodeDiagnostics = import.meta.env.DEV;
+
+const LOCAL_SESSIONS_KEY = "lumina:standalone:sessions";
+const LOCAL_MESSAGES_PREFIX = "lumina:standalone:messages:";
+let standaloneAbortController: AbortController | null = null;
+
+function getLocalSessions(): AgentSessionSummary[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalSessions(sessions: AgentSessionSummary[]): void {
+  try {
+    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
+  } catch (e) {
+    console.error("Failed to save local sessions", e);
+  }
+}
+
+function getLocalMessages(sessionId: string): AgentMessage[] {
+  try {
+    const raw = localStorage.getItem(`${LOCAL_MESSAGES_PREFIX}${sessionId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalMessages(sessionId: string, messages: AgentMessage[]): void {
+  try {
+    localStorage.setItem(
+      `${LOCAL_MESSAGES_PREFIX}${sessionId}`,
+      JSON.stringify(messages),
+    );
+  } catch (e) {
+    console.error("Failed to save local messages", e);
+  }
+}
 
 export type AgentStatus =
   | "idle"
@@ -1084,6 +1127,7 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
     _abortController: null,
 
     async subscribe() {
+      if (!isOpencodeSupported()) return;
       if (get()._subscribed) return;
       const generation = ++subscriptionGeneration;
       set({ _subscribed: true });
@@ -1191,6 +1235,30 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
     },
 
     async loadSessions() {
+      if (!isOpencodeSupported()) {
+        let list = getLocalSessions();
+        if (list.length === 0) {
+          const defaultId = `session_${Date.now()}`;
+          const now = Date.now();
+          const defaultSession: AgentSessionSummary = {
+            id: defaultId,
+            title: "New Chat",
+            createdAt: now,
+            updatedAt: now,
+          };
+          list = [defaultSession];
+          saveLocalSessions(list);
+          saveLocalMessages(defaultId, []);
+        }
+        const current = get().currentSessionId || list[0]?.id || null;
+        const currentMsgs = current ? getLocalMessages(current) : [];
+        set({
+          sessions: list,
+          currentSessionId: current,
+          messages: currentMsgs,
+        });
+        return;
+      }
       try {
         const client = await getOpencodeClient();
         const res = await client.session.list({ throwOnError: true });
@@ -1215,6 +1283,28 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
     },
 
     async newSession(directory?: string) {
+      if (!isOpencodeSupported()) {
+        const newId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const now = Date.now();
+        const summary: AgentSessionSummary = {
+          id: newId,
+          title: "New Chat",
+          createdAt: now,
+          updatedAt: now,
+        };
+        const list = [summary, ...getLocalSessions().filter((s) => s.id !== newId)];
+        saveLocalSessions(list);
+        saveLocalMessages(newId, []);
+        set({
+          currentSessionId: newId,
+          messages: [],
+          sessions: list,
+          status: "idle",
+          error: null,
+          llmRequestStartTime: null,
+        });
+        return newId;
+      }
       try {
         const client = await getOpencodeClient();
         // Opencode scopes sessions to an Instance keyed by `directory`.
@@ -1260,6 +1350,19 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
     },
 
     async switchSession(id: string) {
+      if (!isOpencodeSupported()) {
+        const msgs = getLocalMessages(id);
+        useErrorBanner.getState().clearBanner();
+        set({
+          currentSessionId: id,
+          messages: msgs,
+          status: "idle",
+          error: null,
+          pendingTool: null,
+          llmRequestStartTime: null,
+        });
+        return;
+      }
       try {
         const client = await getOpencodeClient();
         const res = await client.session.messages({
@@ -1292,6 +1395,33 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
     },
 
     async deleteSession(id: string) {
+      if (!isOpencodeSupported()) {
+        try {
+          localStorage.removeItem(`${LOCAL_MESSAGES_PREFIX}${id}`);
+        } catch {}
+        const list = getLocalSessions().filter((s) => s.id !== id);
+        saveLocalSessions(list);
+        let nextId: string | null = null;
+        let nextMsgs: AgentMessage[] = [];
+        if (get().currentSessionId === id) {
+          if (list.length > 0) {
+            nextId = list[0].id;
+            nextMsgs = getLocalMessages(nextId);
+          } else {
+            await get().newSession();
+            return;
+          }
+        } else {
+          nextId = get().currentSessionId;
+          nextMsgs = get().messages;
+        }
+        set({
+          sessions: list,
+          currentSessionId: nextId,
+          messages: nextMsgs,
+        });
+        return;
+      }
       try {
         const client = await getOpencodeClient();
         await client.session.delete({ path: { id }, throwOnError: true });
@@ -1321,6 +1451,131 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
       if (startTaskLock) await startTaskLock.catch(() => {});
       let releaseLock: () => void;
       startTaskLock = new Promise<void>((resolve) => { releaseLock = resolve; });
+
+      if (!isOpencodeSupported()) {
+        try {
+          useErrorBanner.getState().clearBanner();
+          let sessionId = get().currentSessionId;
+          if (!sessionId) {
+            sessionId = await get().newSession();
+            if (!sessionId) return;
+          }
+
+          standaloneAbortController = new AbortController();
+          const signal = standaloneAbortController.signal;
+
+          const requestStartedAt = Date.now();
+          const nextOptimisticId = `optimistic-user-${requestStartedAt}-${Math.random().toString(36).slice(2, 7)}`;
+          const displayText = ctx?.display_message || task;
+          const userMsg: AgentMessage = {
+            id: nextOptimisticId,
+            role: "user",
+            content: displayText,
+            rawParts: [{ type: "text", text: displayText } as any],
+            completedAt: requestStartedAt,
+          };
+
+          const assistantMsgId = `assistant-${requestStartedAt + 1}-${Math.random().toString(36).slice(2, 7)}`;
+          const assistantMsg: AgentMessage = {
+            id: assistantMsgId,
+            role: "assistant",
+            content: "",
+            rawParts: [],
+            completedAt: undefined,
+          };
+
+          const nextMessages = [...get().messages, userMsg, assistantMsg];
+          set({
+            messages: nextMessages,
+            status: "running",
+            llmRequestStartTime: requestStartedAt,
+            error: null,
+          });
+
+          // Auto-update session title from first user message
+          const currentSessions = get().sessions;
+          const curSession = currentSessions.find((s) => s.id === sessionId);
+          if (curSession && (curSession.title === "New Chat" || !curSession.title)) {
+            const newTitle = (task || displayText).slice(0, 32).trim() || "Chat";
+            const updatedSessions = currentSessions.map((s) =>
+              s.id === sessionId ? { ...s, title: newTitle, updatedAt: Date.now() } : s
+            );
+            saveLocalSessions(updatedSessions);
+            set({ sessions: updatedSessions });
+          }
+
+          let accumulatedText = "";
+          try {
+            const cfg = getAIConfig();
+            const llmHistory = nextMessages
+              .slice(0, -1) // exclude the empty assistant placeholder
+              .map((m) => ({
+                role: m.role,
+                content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+              }));
+
+            for await (const chunk of streamDirectLLM(llmHistory, cfg, signal)) {
+              if (signal.aborted) break;
+              if (chunk.type === "text" && chunk.text) {
+                accumulatedText += chunk.text;
+                set((state) => ({
+                  messages: state.messages.map((m) =>
+                    m.id === assistantMsgId ? { ...m, content: accumulatedText } : m
+                  ),
+                }));
+              } else if (chunk.type === "error" && chunk.error) {
+                throw new Error(chunk.error);
+              }
+            }
+
+            const finalizedMessages = get().messages.map((m) =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: accumulatedText || "(No response received)",
+                    rawParts: [{ type: "text", text: accumulatedText } as any],
+                    completedAt: Date.now(),
+                  }
+                : m
+            );
+            saveLocalMessages(sessionId, finalizedMessages);
+            set({
+              messages: finalizedMessages,
+              status: "idle",
+              llmRequestStartTime: null,
+            });
+          } catch (err) {
+            if (signal.aborted) {
+              set({ status: "aborted", llmRequestStartTime: null });
+            } else {
+              const errStr = err instanceof Error ? err.message : String(err);
+              const finalizedMessages = get().messages.map((m) =>
+                m.id === assistantMsgId
+                  ? {
+                      ...m,
+                      content: accumulatedText ? `${accumulatedText}\n\n[Error: ${errStr}]` : `[Error: ${errStr}]`,
+                      rawParts: [{ type: "text", text: errStr } as any],
+                      completedAt: Date.now(),
+                    }
+                  : m
+              );
+              saveLocalMessages(sessionId, finalizedMessages);
+              set({
+                messages: finalizedMessages,
+                status: "idle",
+                error: errStr,
+                llmRequestStartTime: null,
+              });
+            }
+          } finally {
+            standaloneAbortController = null;
+          }
+        } finally {
+          releaseLock!();
+          startTaskLock = null;
+        }
+        return;
+      }
 
       // One trace id per user-initiated send; correlates the optimistic
       // message, the HTTP request retries, and any SSE/error envelopes
@@ -1467,6 +1722,12 @@ export const useOpencodeAgent = create<OpencodeAgentStore>((set, get) => {
     },
 
     async abort() {
+      if (!isOpencodeSupported()) {
+        standaloneAbortController?.abort();
+        standaloneAbortController = null;
+        set({ status: "aborted", llmRequestStartTime: null });
+        return;
+      }
       const sessionId = get().currentSessionId;
       if (!sessionId) return;
       try {
@@ -1570,7 +1831,11 @@ export function handleOpencodeServerChanged(info: OpencodeServerInfo): void {
 }
 
 export function initOpencodeAgentListeners(): void {
-  // Pin every opencode HTTP request to the active vault path so the
+  const store = useOpencodeAgent.getState();
+  if (!isOpencodeSupported()) {
+    store.loadSessions().catch(silenceInit);
+    return;
+  }
   // InstanceMiddleware on the server always routes session/prompt traffic
   // to the same Instance. Without this, session.create and prompt_async
   // end up in different Instances and the SSE stream silently drops.

@@ -80,7 +80,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+
+        val rootLayout = android.widget.FrameLayout(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            fitsSystemWindows = true
+        }
 
         webView = WebView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -88,15 +96,8 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
-        setContentView(webView)
-
-        ViewCompat.setOnApplyWindowInsetsListener(webView) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val bottomPadding = if (ime.bottom > 0) ime.bottom else systemBars.bottom
-            v.setPadding(0, systemBars.top, 0, bottomPadding)
-            insets
-        }
+        rootLayout.addView(webView)
+        setContentView(rootLayout)
 
         bridge = LuminaNativeBridge(this, webView)
 

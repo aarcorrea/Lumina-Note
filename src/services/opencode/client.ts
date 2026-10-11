@@ -8,6 +8,13 @@ import {
   createOpencodeClient,
   type OpencodeClient,
 } from "@opencode-ai/sdk/client";
+import { isAndroid } from "@/lib/hostBridge";
+
+export function isOpencodeSupported(): boolean {
+  if (typeof window === "undefined") return true;
+  if (isAndroid()) return false;
+  return Boolean(window.lumina?.opencode);
+}
 
 type ServerInfo = {
   url: string;

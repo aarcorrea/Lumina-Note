@@ -303,13 +303,16 @@ Enjoy writing!
     }
 
     fun walkPaths(args: JSONObject): JSONObject {
-        val rootPath = args.optString("root").ifBlank { getDefaultVaultDir().absolutePath }
+        val rootPath = args.optString("path").ifBlank {
+            args.optString("root").ifBlank { getDefaultVaultDir().absolutePath }
+        }
         val root = File(rootPath)
         val extensionsArray = args.optJSONArray("extensions")
         val allowedExts = mutableSetOf<String>()
         if (extensionsArray != null) {
             for (i in 0 until extensionsArray.length()) {
-                allowedExts.add(extensionsArray.getString(i).removePrefix("."))
+                val ext = extensionsArray.getString(i).removePrefix(".")
+                if (ext.isNotBlank()) allowedExts.add(ext)
             }
         }
         val maxPaths = args.optInt("maxPaths", 50000)

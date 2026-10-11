@@ -182,8 +182,11 @@ export const useNoteIndexStore = create<NoteIndexState>((set, get) => ({
     }
     if (abort.signal.aborted) return;
 
-    const allFiles = walk.paths.map((p) => ({ path: p, name: nameFromPath(p) }));
-    set({ totalNotes: allFiles.length, truncated: walk.truncated });
+    const rawPaths = walk?.paths;
+    const allFiles = Array.isArray(rawPaths)
+      ? rawPaths.map((p) => ({ path: p, name: nameFromPath(p) }))
+      : [];
+    set({ totalNotes: allFiles.length, truncated: Boolean(walk?.truncated) });
 
     const noteIndex = new Map<string, NoteIndex>();
     const backlinksMap = new Map<string, Backlink[]>();
@@ -339,9 +342,10 @@ export const useNoteIndexStore = create<NoteIndexState>((set, get) => ({
       return [];
     }
 
-    // Search reads files sequentially with a small concurrency pool —
-    // identical structure to indexing but without the wikilink/tag work.
-    const allFiles = walk.paths.map((p) => ({ path: p, name: nameFromPath(p) }));
+    const rawPaths = walk?.paths;
+    const allFiles = Array.isArray(rawPaths)
+      ? rawPaths.map((p) => ({ path: p, name: nameFromPath(p) }))
+      : [];
     const queue = allFiles.slice();
 
     const searchOne = async (file: { path: string; name: string }) => {
