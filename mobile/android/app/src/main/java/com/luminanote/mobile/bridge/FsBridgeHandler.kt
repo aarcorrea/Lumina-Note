@@ -55,7 +55,7 @@ class FsBridgeHandler(private val context: Context) {
 Lumina Note is your fast, local-first markdown notebook with AI capabilities.
 
 ## Getting Started
-- 📝 **Write in Markdown**: Full support for headings, task lists, code blocks, and math equations ($$E=mc^2$$).
+- 📝 **Write in Markdown**: Full support for headings, task lists, code blocks, and math equations (${'$'}${'$'}E=mc^2${'$'}${'$'}).
 - 🎨 **Canvas & Diagrams**: Draw sketches, flowcharts, and mind maps.
 - 🤖 **AI Assistant**: Connect OpenAI, Anthropic, Gemini, DeepSeek, or local Ollama models in Settings.
 - 🔄 **Cloud Sync**: Sync your vault seamlessly via WebDAV or self-hosted server.
