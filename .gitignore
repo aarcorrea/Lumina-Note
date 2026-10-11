@@ -6,6 +6,7 @@ out/
 build/
 dist/
 dist-ssr/
+build-artifacts/
 *.tsbuildinfo
 mobile/android/.gradle/
 mobile/android/app/build/
