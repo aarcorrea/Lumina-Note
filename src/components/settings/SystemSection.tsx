@@ -59,7 +59,7 @@ export function SystemSection({ onOpenUpdateModal }: SystemSectionProps) {
 
         <div className="flex items-center justify-between py-2">
           <div>
-            <p className="font-medium">Lumina Note</p>
+            <p className="font-medium">Metis Notes</p>
             <p className="text-sm text-muted-foreground">
               {t.settingsModal.appDescription}
             </p>

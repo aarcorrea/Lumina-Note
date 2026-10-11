@@ -2,7 +2,7 @@
 export default {
   // 歡迎界面
   welcome: {
-    title: "Lumina Note",
+    title: "Metis Notes",
     subtitle: "本地優先的 AI 驅動筆記應用",
     openFolder: "開啟筆記資料夾",
     selectFolder: "選擇一個包含 Markdown 筆記的資料夾",
@@ -14,7 +14,7 @@ export default {
     featureLocal: "本地優先",
     featureLocalDesc: "筆記始終保存在你的裝置上",
     createVault: "新建倉庫",
-    createVaultDesc: "創建包含 Lumina 工作區結構的新文件夾",
+    createVaultDesc: "創建包含 Metis 工作區結構的新文件夾",
     vaultNamePlaceholder: "我的筆記",
     recentVaults: "最近開啟",
     noRecentVaults: "無最近倉庫",
@@ -301,7 +301,7 @@ export default {
     stop: "停止",
     regenerate: "重新生成",
     errorRetry: "發生錯誤，請重試",
-    welcomeAgent: "我是 Lumina Agent，告訴我你想完成的任務。",
+    welcomeAgent: "我是 Metis Agent，告訴我你想完成的任務。",
     needApproval: "需要審批",
     sendToQueue: "加入佇列",
     agentQueueTitle: "任務佇列",
@@ -361,7 +361,7 @@ export default {
       noVaultOpen: "請先開啟一個 vault 才能建立或編輯技能。",
     },
     quoteFrom: "引用自",
-    welcomeTitle: "你好，我是 Lumina",
+    welcomeTitle: "你好，我是 Metis",
     welcomeMorning: [
       "早安，今天想做點什麼？",
       "早安，從哪裡開始？",
@@ -413,7 +413,7 @@ export default {
       "回到《{name}》？",
     ],
     welcomeEmptyVault: [
-      "Lumina 準備好了，想從哪裡開始？",
+      "Metis 準備好了，想從哪裡開始？",
       "空的筆記庫，想先寫點什麼？",
       "白紙一張，先記些什麼？",
       "新開始，先聊聊想做什麼？",
@@ -670,7 +670,7 @@ export default {
     skills: "技能",
     plugins: "插件",
     softwareUpdateChecking: "正在檢查更新",
-    starProject: "為 Lumina Note 點個 Star",
+    starProject: "為 Metis Notes 點個 Star",
     switchToLight: "切換到亮色模式",
     switchToDark: "切換到暗色模式",
     settings: "設定",
@@ -679,7 +679,7 @@ export default {
   // 插件
   plugins: {
     modalTitle: "插件",
-    centerDescription: "在一個地方管理 Lumina 插件和 AI 技能。",
+    centerDescription: "在一個地方管理 Metis 插件和 AI 技能。",
     pluginSettingsTitle: "插件設定",
     title: "插件",
     intro: "管理已安裝插件、外觀插件與系統插件。",
@@ -1289,7 +1289,7 @@ export default {
     noChangelog: "尚無更新日誌",
     preparing: "準備中...",
     readyHint: "更新已下載並準備好，重新啟動後會完成替換並開啟新版應用程式。",
-    locationNotWritable: "無法在目前位置自動更新。請先將 Lumina Note 拖到「應用程式」資料夾後再更新。",
+    locationNotWritable: "無法在目前位置自動更新。請先將 Metis Notes 拖到「應用程式」資料夾後再更新。",
     showDiagnostics: "顯示診斷詳情",
     hideDiagnostics: "隱藏診斷詳情",
     skippedVersions: "已跳過的版本",
@@ -1559,7 +1559,7 @@ export default {
       providerNetwork:
         "網路連線失敗，AI 請求沒有完成。請檢查網路或代理後重試。",
       providerOverloaded:
-        "服務商目前繁忙，Lumina 暫時無法取得回覆。可以稍後重試，或切換到其他模型。",
+        "服務商目前繁忙，Metis 暫時無法取得回覆。可以稍後重試，或切換到其他模型。",
       providerGeneric: "AI 暫時無法回應，請稍後重試",
       runtimeMissingApiKey:
         "{provider} 還沒有設定 API Key，暫時不能傳送。",
@@ -2111,9 +2111,9 @@ export default {
     renameImageSafely: "安全重新命名圖片",
     moveImagesSafely: "安全移動 {count} 個圖片",
     renameDescription:
-      "Lumina 將重新命名圖片檔案並重寫所有受影響的 Markdown 引用。",
+      "Metis 將重新命名圖片檔案並重寫所有受影響的 Markdown 引用。",
     moveDescription:
-      "Lumina 將把圖片檔案移動到目標資料夾，並在一次操作中更新所有受影響的 Markdown 引用。",
+      "Metis 將把圖片檔案移動到目標資料夾，並在一次操作中更新所有受影響的 Markdown 引用。",
     closeDialog: "關閉對話框",
     newFileName: "新檔名",
     targetFolder: "目標資料夾（相對於倉庫）",

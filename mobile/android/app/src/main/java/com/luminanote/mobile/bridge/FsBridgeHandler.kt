@@ -22,17 +22,15 @@ class FsBridgeHandler(private val context: Context) {
     private fun shouldSkip(name: String): Boolean {
         if (ignoredDirs.contains(name)) return true
         if (ignoredFiles.contains(name)) return true
-        if (name.startsWith(".") && name != ".lumina") return true
+        if (name.startsWith(".") && name != ".lumina" && name != ".metis") return true
         return false
     }
 
     fun getDefaultVaultDir(): File {
         val external = context.getExternalFilesDir(null)
-        val vaultDir = if (external != null) {
-            File(external, "LuminaVault")
-        } else {
-            File(context.filesDir, "LuminaVault")
-        }
+        val legacyDir = if (external != null) File(external, "LuminaVault") else File(context.filesDir, "LuminaVault")
+        val metisDir = if (external != null) File(external, "MetisVault") else File(context.filesDir, "MetisVault")
+        val vaultDir = if (legacyDir.exists() && legacyDir.isDirectory) legacyDir else metisDir
         if (!vaultDir.exists()) {
             vaultDir.mkdirs()
         }
@@ -49,10 +47,10 @@ class FsBridgeHandler(private val context: Context) {
         // Check if vault is empty. If so, create a welcome starter note
         val files = root.listFiles()
         if (files == null || files.isEmpty()) {
-            val welcomeFile = File(root, "Welcome to Lumina.md")
-            val welcomeContent = """# Welcome to Lumina Note on Android 🚀
+            val welcomeFile = File(root, "Welcome to Metis.md")
+            val welcomeContent = """# Welcome to Metis Notes on Android 🚀
 
-Lumina Note is your fast, local-first markdown notebook with AI capabilities.
+Metis Notes is your fast, local-first markdown notebook with AI capabilities.
 
 ## Getting Started
 - 📝 **Write in Markdown**: Full support for headings, task lists, code blocks, and math equations (${'$'}${'$'}E=mc^2${'$'}${'$'}).

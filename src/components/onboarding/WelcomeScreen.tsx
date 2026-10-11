@@ -131,9 +131,10 @@ export function WelcomeScreen({
             <LanguageSwitcher compact stopPropagation />
           </div>
         ) : (
-          <div className="absolute top-[max(0.75rem,var(--sat))] right-4 z-20">
-            <LanguageSwitcher showLabel={false} />
-          </div>
+          <LanguageSwitcher
+            className="absolute top-[max(0.75rem,var(--sat))] right-4 z-20"
+            showLabel={false}
+          />
         )}
 
         <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto md:overflow-hidden">
@@ -162,7 +163,7 @@ export function WelcomeScreen({
               >
                 <img
                   src={logoUrl}
-                  alt="Lumina Note"
+                  alt="Metis Notes"
                   className="h-14 w-14 md:h-[68px] md:w-[68px] rounded-ui-xl shadow-sm"
                 />
 

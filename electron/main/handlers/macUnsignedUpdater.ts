@@ -149,7 +149,7 @@ function assertInstallLocationWritable(): void {
     accessSync(dirname(getAppBundlePath()), constants.W_OK);
   } catch {
     const error = new Error(
-      "Cannot install updates from this app location. Move Lumina Note to /Applications and try again.",
+      "Cannot install updates from this app location. Move Metis Notes to /Applications and try again.",
     ) as NodeJS.ErrnoException;
     error.code = LOCATION_NOT_WRITABLE;
     throw error;

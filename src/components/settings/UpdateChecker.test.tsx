@@ -159,7 +159,7 @@ describe("UpdateChecker", () => {
         startedAt: 1,
         updatedAt: 1,
         finishedAt: 1,
-        error: "Cannot install updates from this app location. Move Lumina Note to /Applications and try again.",
+        error: "Cannot install updates from this app location. Move Metis Notes to /Applications and try again.",
         errorCode: "UPDATE_LOCATION_NOT_WRITABLE",
         resumable: true,
         retryDelayMs: null,
@@ -172,7 +172,7 @@ describe("UpdateChecker", () => {
     render(<UpdateChecker />);
 
     expect(
-      screen.getByText("无法在当前位置自动更新。请先将 Lumina Note 拖到「应用程序」文件夹后再更新。"),
+      screen.getByText("无法在当前位置自动更新。请先将 Metis Notes 拖到「应用程序」文件夹后再更新。"),
     ).toBeInTheDocument();
   });
 

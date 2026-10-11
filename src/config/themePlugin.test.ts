@@ -83,7 +83,7 @@ describe('themePlugin', () => {
     const exported = exportTheme(theme);
     const parsed = JSON.parse(exported);
     expect(parsed.id).toBe('custom');
-    expect(parsed._exportedFrom).toBe('Lumina Note');
+    expect(parsed._exportedFrom).toBe('Metis Notes');
     expect(parsed._exportedAt).toBeTruthy();
 
     const imported = importTheme(exported);

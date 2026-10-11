@@ -2,7 +2,7 @@
 export default {
   // ウェルカム画面
   welcome: {
-    title: "Lumina Note",
+    title: "Metis Notes",
     subtitle: "ローカルファーストの AI 駆動ノートアプリ",
     openFolder: "ノートフォルダを開く",
     selectFolder: "Markdown ノートを含むフォルダを選択",
@@ -14,7 +14,7 @@ export default {
     featureLocal: "ローカルファースト",
     featureLocalDesc: "ノートは常にあなたのデバイスに",
     createVault: "新規ボールト作成",
-    createVaultDesc: "Lumina ワークスペース構造を持つ新しいフォルダを作成",
+    createVaultDesc: "Metis ワークスペース構造を持つ新しいフォルダを作成",
     vaultNamePlaceholder: "マイノート",
     recentVaults: "最近開いた",
     noRecentVaults: "最近のボールトがありません",
@@ -302,7 +302,7 @@ export default {
     stop: "停止",
     regenerate: "再生成",
     errorRetry: "エラーが発生しました、再試行してください",
-    welcomeAgent: "私は Lumina Agent です。完了したいタスクを教えてください。",
+    welcomeAgent: "私は Metis Agent です。完了したいタスクを教えてください。",
     needApproval: "承認が必要",
     sendToQueue: "キューに追加",
     agentQueueTitle: "タスクキュー",
@@ -321,7 +321,7 @@ export default {
     skillsEmpty: "利用可能なスキルがありません",
     skillsManager: {
       title: "スキル",
-      desc: "AI が呼び出せるスキルを管理：Lumina 内蔵スキルとボルト内のカスタムスキル。",
+      desc: "AI が呼び出せるスキルを管理：Metis 内蔵スキルとボルト内のカスタムスキル。",
       refresh: "更新",
       loading: "読み込み中…",
       empty: "スキルがありません。「新規」をクリックして作成しましょう。",
@@ -363,7 +363,7 @@ export default {
       noVaultOpen: "スキルを作成・編集するにはボルトを開いてください。",
     },
     quoteFrom: "引用元",
-    welcomeTitle: "こんにちは、Lumina です",
+    welcomeTitle: "こんにちは、Metis です",
     welcomeMorning: [
       "おはよう。今日は何を？",
       "おはようございます。どこから始めますか？",
@@ -415,7 +415,7 @@ export default {
       "「{name}」に戻りますか？",
     ],
     welcomeEmptyVault: [
-      "Lumina の準備ができました。どこから始めますか？",
+      "Metis の準備ができました。どこから始めますか？",
       "新しいノート集。最初に何を書きますか？",
       "白紙ですね。何から記録しますか？",
       "新しい始まり。まず何を話しましょうか？",
@@ -678,7 +678,7 @@ export default {
     skills: "スキル",
     plugins: "プラグイン",
     softwareUpdateChecking: "更新を確認中",
-    starProject: "Lumina Note に GitHub Star",
+    starProject: "Metis Notes に GitHub Star",
     switchToLight: "ライトモードに切替",
     switchToDark: "ダークモードに切替",
     settings: "設定",
@@ -688,7 +688,7 @@ export default {
   plugins: {
     modalTitle: "プラグイン",
     centerDescription:
-      "Lumina プラグインと AI スキルを 1 か所で管理します。",
+      "Metis プラグインと AI スキルを 1 か所で管理します。",
     pluginSettingsTitle: "プラグイン設定",
     title: "プラグイン",
     intro:
@@ -1317,7 +1317,7 @@ export default {
     noChangelog: "リリースノートはありません",
     preparing: "準備中...",
     readyHint: "更新のダウンロードと準備が完了しました。再起動するとアプリが置き換えられ、新しいバージョンが開きます。",
-    locationNotWritable: "この場所からは自動更新できません。Lumina Note を「アプリケーション」フォルダへ移動してから再試行してください。",
+    locationNotWritable: "この場所からは自動更新できません。Metis Notes を「アプリケーション」フォルダへ移動してから再試行してください。",
     showDiagnostics: "診断情報を表示",
     hideDiagnostics: "診断情報を隠す",
     skippedVersions: "スキップしたバージョン",
@@ -2161,9 +2161,9 @@ export default {
     renameImageSafely: "画像を安全に名前変更",
     moveImagesSafely: "{count} 件の画像を安全に移動",
     renameDescription:
-      "Lumina は画像ファイルの名前を変更し、影響を受けるすべての Markdown 参照を書き換えます。",
+      "Metis は画像ファイルの名前を変更し、影響を受けるすべての Markdown 参照を書き換えます。",
     moveDescription:
-      "Lumina は画像ファイルをターゲットフォルダに移動し、影響を受けるすべての Markdown 参照を一括で更新します。",
+      "Metis は画像ファイルをターゲットフォルダに移動し、影響を受けるすべての Markdown 参照を一括で更新します。",
     closeDialog: "ダイアログを閉じる",
     newFileName: "新しいファイル名",
     targetFolder: "ターゲットフォルダ（ボールト相対）",

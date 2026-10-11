@@ -42,7 +42,7 @@ export async function exportToPdf(content: string, title: string) {
   
   container.innerHTML = `
       <div style="text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:2px solid #eee;">
-      <div style="color:#3b82f6;font-size:14px;font-weight:600;letter-spacing:1px;margin-bottom:8px;">Lumina Note</div>
+      <div style="color:#3b82f6;font-size:14px;font-weight:600;letter-spacing:1px;margin-bottom:8px;">Metis Notes</div>
       <h1 style="font-size:24px;margin:0;color:#333;">${title}</h1>
       <div style="color:#888;font-size:12px;margin-top:8px;">${t.pdf.exportedAt}：${new Date().toLocaleString(locale)}</div>
     </div>

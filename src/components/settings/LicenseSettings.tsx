@@ -33,7 +33,7 @@ export function LicenseSettings(): JSX.Element {
       <section className="space-y-4" aria-labelledby="license-heading">
         <header>
           <h2 id="license-heading" className="text-base font-medium">
-            Lumina Cloud license
+            Metis Cloud license
           </h2>
         </header>
 
@@ -76,7 +76,7 @@ export function LicenseSettings(): JSX.Element {
     <section className="space-y-4" aria-labelledby="license-heading">
       <header className="space-y-1">
         <h2 id="license-heading" className="text-base font-medium">
-          Lumina Cloud license
+          Metis Cloud license
         </h2>
         <p className="text-sm text-muted-foreground">
           Paste the license you received by email. Verification happens locally — no network call required.

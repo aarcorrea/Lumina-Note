@@ -2091,7 +2091,7 @@ function createVscodeApi(state, originForApi) {
     ProgressLocation,
     StatusBarAlignment,
     env: {
-      appName: "Lumina Note",
+      appName: "Metis Notes",
       appHost: "desktop",
       uriScheme: "lumina-note",
       language: "en",

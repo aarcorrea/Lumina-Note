@@ -38,11 +38,11 @@ vi.mock("@/stores/useLocaleStore", () => ({
   useLocaleStore: () => ({
     t: {
       welcome: {
-        title: "Lumina Note",
+        title: "Metis Notes",
         openFolder: "Open Notes Folder",
         selectFolder: "Select a folder to continue",
         createVault: "Create New Vault",
-        createVaultDesc: "Create a new folder with Lumina workspace structure",
+        createVaultDesc: "Create a new folder with Metis workspace structure",
         vaultNamePlaceholder: "My Notes",
         recentVaults: "Recent Vaults",
         noRecentVaults: "No recent vaults",
@@ -85,7 +85,7 @@ describe("WelcomeScreen", () => {
   it("renders the two-pane layout", () => {
     render(<WelcomeScreen onOpenVault={vi.fn()} />);
     expect(
-      screen.getByRole("heading", { name: "Lumina Note" }),
+      screen.getByRole("heading", { name: "Metis Notes" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Open Notes Folder")).toBeInTheDocument();
     expect(screen.getByText("No recent vaults")).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe("WelcomeScreen", () => {
     render(<WelcomeScreen onOpenVault={vi.fn()} />);
     expect(screen.getByTestId("language-switcher")).toHaveAttribute(
       "data-classname",
-      "absolute top-4 right-4 z-10",
+      "absolute top-[max(0.75rem,var(--sat))] right-4 z-20",
     );
   });
 
@@ -134,7 +134,7 @@ describe("WelcomeScreen", () => {
     const backButton = await screen.findByRole("button", { name: /cancel/i });
     fireEvent.click(backButton);
     expect(
-      await screen.findByRole("heading", { name: "Lumina Note" }),
+      await screen.findByRole("heading", { name: "Metis Notes" }),
     ).toBeInTheDocument();
   });
 

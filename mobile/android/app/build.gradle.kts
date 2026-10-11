@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.luminanote.mobile"
+        applicationId = "com.metisnotes.mobile"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LuminaMobile"
+rootProject.name = "MetisMobile"
 include(":app")

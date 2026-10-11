@@ -160,7 +160,7 @@ export function TitleBar() {
         {/* 中间：应用标题 */}
         <div className="flex-1 flex items-center justify-center">
           <span className="text-ui-caption text-muted-foreground font-medium pointer-events-none">
-            Lumina Note
+            Metis Notes
           </span>
         </div>
         <div
@@ -189,7 +189,7 @@ export function TitleBar() {
           className="w-4 h-4 pointer-events-none"
         />
         <span className="text-ui-caption text-muted-foreground font-medium pointer-events-none">
-          Lumina Note
+          Metis Notes
         </span>
       </div>
 

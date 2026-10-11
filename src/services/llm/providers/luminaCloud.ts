@@ -27,8 +27,8 @@ export const LUMINA_CLOUD_REQUIRED_FEATURE = 'cloud_ai';
 
 export const LUMINA_CLOUD_PROVIDER: ProviderMeta = {
   id: LUMINA_CLOUD_PROVIDER_ID,
-  label: 'Lumina Cloud',
-  description: 'Lumina-managed cloud AI (license required)',
+  label: 'Metis Cloud',
+  description: 'Metis-managed cloud AI (license required)',
   defaultBaseUrl: LUMINA_CLOUD_BASE_URL,
   // The license takes the place of an API key in the OpenAI-compatible
   // plumbing — UI should still render an "API key" input, just labelled

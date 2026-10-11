@@ -49,7 +49,7 @@ export function MobileHeader({
       const name = parts[parts.length - 1] || currentFile;
       return name.replace(/\.md$/i, "");
     }
-    return activeTab?.name || "Lumina Note";
+    return activeTab?.name || "Metis Notes";
   };
 
   const handleToggleMode = useCallback(() => {

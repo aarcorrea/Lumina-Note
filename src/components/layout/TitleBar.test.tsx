@@ -44,7 +44,7 @@ describe("TitleBar", () => {
   it("does not touch tauri window APIs when tauri runtime is unavailable", async () => {
     render(<TitleBar />);
 
-    expect(screen.getByText("Lumina Note")).toBeInTheDocument();
+    expect(screen.getByText("Metis Notes")).toBeInTheDocument();
     await waitFor(() => {
       expect(tauriMocks.getCurrentWindow).not.toHaveBeenCalled();
       expect(tauriMocks.platform).not.toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe("TitleBar", () => {
       expect(tauriMocks.platform).toHaveBeenCalled();
     });
 
-    expect(screen.queryByText("Lumina Note")).not.toBeInTheDocument();
+    expect(screen.queryByText("Metis Notes")).not.toBeInTheDocument();
     expect(screen.queryByTestId("macos-titlebar-spacer")).not.toBeInTheDocument();
     expect(container.firstChild).toBeNull();
   });

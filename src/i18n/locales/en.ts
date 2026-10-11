@@ -2,7 +2,7 @@
 export default {
   // Welcome screen
   welcome: {
-    title: "Lumina Note",
+    title: "Metis Notes",
     subtitle: "Local-first AI-powered note-taking app",
     openFolder: "Open Notes Folder",
     selectFolder: "Select a folder containing Markdown notes",
@@ -14,7 +14,7 @@ export default {
     featureLocal: "Local First",
     featureLocalDesc: "Your notes stay on your device",
     createVault: "Create New Vault",
-    createVaultDesc: "Create a new folder with Lumina workspace structure",
+    createVaultDesc: "Create a new folder with Metis workspace structure",
     vaultNamePlaceholder: "My Notes",
     recentVaults: "Recent Vaults",
     noRecentVaults: "No recent vaults",
@@ -303,7 +303,7 @@ export default {
     stop: "Stop",
     regenerate: "Regenerate",
     errorRetry: "Something went wrong. Try again.",
-    welcomeAgent: "I am Lumina Agent. Tell me what you want to get done.",
+    welcomeAgent: "I am Metis Agent. Tell me what you want to get done.",
     needApproval: "Approval needed",
     sendToQueue: "Queue",
     agentQueueTitle: "Task queue",
@@ -323,7 +323,7 @@ export default {
     skillsEmpty: "No skills found",
     skillsManager: {
       title: "Skills",
-      desc: "Manage skills the AI can invoke — both Lumina built-ins and your vault's custom skills.",
+      desc: "Manage skills the AI can invoke — both Metis built-ins and your vault's custom skills.",
       refresh: "Refresh",
       loading: "Loading…",
       empty: "No skills yet. Click 'New' to create one.",
@@ -368,7 +368,7 @@ export default {
       noVaultOpen: "Open a vault to create or edit skills.",
     },
     quoteFrom: "Quote from",
-    welcomeTitle: "Hi, I'm Lumina",
+    welcomeTitle: "Hi, I'm Metis",
     welcomeMorning: [
       "Good morning. What's on your mind?",
       "Morning — where shall we start?",
@@ -420,7 +420,7 @@ export default {
       "Picking up \u201C{name}\u201D again?",
     ],
     welcomeEmptyVault: [
-      "Lumina is ready. Where would you like to start?",
+      "Metis is ready. Where would you like to start?",
       "Fresh vault. What would you like to write first?",
       "Empty notebook. Where shall we begin?",
       "A blank canvas. What would you like to capture?",
@@ -617,7 +617,7 @@ export default {
     vaultTooLargeWarning:
       "This directory has {count} top-level entries, which is unusually large for a note vault. Opening it could cause performance issues. Continue anyway?",
     voiceRecordHint:
-      "Record a voice note. Lumina saves it and creates a summary when you finish.",
+      "Record a voice note. Metis saves it and creates a summary when you finish.",
     quickNotePrefix: "QuickNote",
     voiceNotePrefix: "VoiceNote",
     voiceNoteSaveFailed: "Failed to save voice note",
@@ -685,7 +685,7 @@ export default {
     skills: "Skills",
     plugins: "Plugins",
     softwareUpdateChecking: "Checking for updates",
-    starProject: "Star Lumina Note on GitHub",
+    starProject: "Star Metis Notes on GitHub",
     switchToLight: "Switch to light mode",
     switchToDark: "Switch to dark mode",
     settings: "Settings",
@@ -694,7 +694,7 @@ export default {
   // Plugins
   plugins: {
     modalTitle: "Plugins",
-    centerDescription: "Manage Lumina plugins and agent skills from one place.",
+    centerDescription: "Manage Metis plugins and agent skills from one place.",
     pluginSettingsTitle: "Plugin Settings",
     title: "Plugins",
     intro: "Manage installed plugins, appearance plugins, and system plugins.",
@@ -1342,7 +1342,7 @@ export default {
     docToolsAvailable: "Available",
     docToolsUnavailable: "Unavailable",
     docToolsHint:
-      "When installed, Lumina prefers the pack binaries over system tools.",
+      "When installed, Metis prefers the pack binaries over system tools.",
     docToolsPrompt:
       "Doc Tools Pack is not installed. Download and install now?",
     softwareUpdateDescription:
@@ -1442,7 +1442,7 @@ export default {
     readyHint:
       "Update downloaded and prepared. Restart to replace the app and open the new version.",
     locationNotWritable:
-      "Automatic update is unavailable from this location. Move Lumina Note to the Applications folder and try again.",
+      "Automatic update is unavailable from this location. Move Metis Notes to the Applications folder and try again.",
     showDiagnostics: "Show diagnostics",
     hideDiagnostics: "Hide diagnostics",
     skippedVersions: "Skipped versions",
@@ -1584,9 +1584,9 @@ export default {
       providerQuotaExhausted:
         "This account is out of quota. Check the provider's billing, balance, or usage limits.",
       providerRateLimited:
-        "Too many requests. The provider asked Lumina to try again later.",
+        "Too many requests. The provider asked Metis to try again later.",
       providerRateLimitedWithDelay:
-        "Too many requests. The provider asked Lumina to try again in {seconds}s.",
+        "Too many requests. The provider asked Metis to try again in {seconds}s.",
       providerModelNotFound:
         "The current model could not be found. Check the model ID or choose a model your account can use.",
       providerModelAccessDenied:
@@ -1604,7 +1604,7 @@ export default {
       runtimeMissingApiKey:
         "{provider} does not have an API key configured yet.",
       runtimeMissingBaseUrl:
-        "OpenAI Compatible needs a Base URL so Lumina knows where to send requests.",
+        "OpenAI Compatible needs a Base URL so Metis knows where to send requests.",
       runtimeMissingModel:
         "{provider} does not have a model ID yet. Enter a model name supported by the provider.",
       runtimeUnsupportedProvider: "Unsupported AI provider: {provider}",
@@ -2169,9 +2169,9 @@ Requirements:
     renameImageSafely: "Rename image safely",
     moveImagesSafely: "Move {count} image(s) safely",
     renameDescription:
-      "Lumina will rename the image file and rewrite every affected Markdown reference before it leaves this dialog.",
+      "Metis will rename the image file and rewrite every affected Markdown reference before it leaves this dialog.",
     moveDescription:
-      "Lumina will move the image files into the target folder and update every affected Markdown reference in one operation.",
+      "Metis will move the image files into the target folder and update every affected Markdown reference in one operation.",
     closeDialog: "Close dialog",
     newFileName: "New file name",
     targetFolder: "Target folder (vault relative)",

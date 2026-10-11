@@ -231,7 +231,7 @@ export function exportTheme(theme: Theme): string {
   const exportData = {
     ...theme,
     id: theme.id.replace('user-', ''), // 移除前缀便于分享
-    _exportedFrom: 'Lumina Note',
+    _exportedFrom: 'Metis Notes',
     _exportedAt: new Date().toISOString()
   };
   return JSON.stringify(exportData, null, 2);

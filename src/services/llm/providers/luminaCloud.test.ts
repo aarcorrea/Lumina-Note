@@ -31,7 +31,7 @@ describe('LUMINA_CLOUD_PROVIDER shape', () => {
   it('matches the ProviderMeta shape the AI settings list consumes', () => {
     expect(LUMINA_CLOUD_PROVIDER).toMatchObject({
       id: LUMINA_CLOUD_PROVIDER_ID,
-      label: 'Lumina Cloud',
+      label: 'Metis Cloud',
       defaultBaseUrl: LUMINA_CLOUD_BASE_URL,
       requiresApiKey: true,
       supportsBaseUrl: false,

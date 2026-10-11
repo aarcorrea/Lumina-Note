@@ -51,7 +51,7 @@ afterEach(() => {
 describe('LicenseSettings — idle state', () => {
   it('renders the entry form with disabled Verify button before user types', () => {
     render(<LicenseSettings />);
-    expect(screen.getByRole('heading', { name: /Lumina Cloud license/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Metis Cloud license/i })).toBeInTheDocument();
     expect(screen.getByLabelText('License token')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Verify/i })).toBeDisabled();
   });

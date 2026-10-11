@@ -70,15 +70,15 @@ const BUILTIN_PLUGIN_DISPLAY: Record<
   "pixel-noir": {
     "zh-CN": {
       name: "像素黑白 / Pixel Noir",
-      description: "为 Lumina 提供高对比黑白像素风外观。",
+      description: "为 Metis 提供高对比黑白像素风外观。",
     },
     "zh-TW": {
       name: "像素黑白 / Pixel Noir",
-      description: "為 Lumina 提供高對比黑白像素風外觀。",
+      description: "為 Metis 提供高對比黑白像素風外觀。",
     },
     ja: {
       name: "ピクセルノワール / Pixel Noir",
-      description: "Lumina に高コントラストの白黒ピクセル風外観を適用します。",
+      description: "Metis に高コントラストの白黒ピクセル風外観を適用します。",
     },
   },
   "executive-monochrome": {

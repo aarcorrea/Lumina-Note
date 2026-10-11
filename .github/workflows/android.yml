@@ -58,13 +58,13 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LuminaNote-android-debug
+          name: MetisNotes-android-debug
           path: mobile/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LuminaNote-android-release
+          name: MetisNotes-android-release
           path: mobile/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: warn

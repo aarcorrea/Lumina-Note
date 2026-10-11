@@ -72,8 +72,8 @@ async function* streamOpenAICompatible(
   }
 
   if (config.provider === "openrouter") {
-    headers["HTTP-Referer"] = "https://luminanote.app";
-    headers["X-Title"] = "Lumina Note";
+    headers["HTTP-Referer"] = "https://metisnotes.app";
+    headers["X-Title"] = "Metis Notes";
   }
 
   const res = await fetch(endpoint, {
