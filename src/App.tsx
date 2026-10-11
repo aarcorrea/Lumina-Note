@@ -47,8 +47,24 @@ import {
   homeDir,
   join,
   exists,
+  isAndroid,
 } from "@/lib/host";
 import { TitleBar } from "@/components/layout/TitleBar";
+import { SettingsModal } from "@/components/layout/SettingsModal";
+import {
+  Folder,
+  Search,
+  Plus,
+  Bot,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Network,
+  Puzzle,
+  Settings as SettingsIcon,
+  LogOut,
+} from "lucide-react";
 import { useMacTopChromeEnabled } from "@/components/layout/MacTopChrome";
 import { MacLeftPaneTopBar } from "@/components/layout/MacLeftPaneTopBar";
 import { enableDebugLogger, disableDebugLogger } from "@/lib/debugLogger";
@@ -307,6 +323,7 @@ function App() {
     refreshFileTree,
     ensureOpenTab,
     openExtensionsCenterTab,
+    openGraphTab,
   } = useFileStore(
     useShallow((state) => ({
       vaultPath: state.vaultPath,
@@ -320,6 +337,7 @@ function App() {
       refreshFileTree: state.refreshFileTree,
       ensureOpenTab: state.ensureOpenTab,
       openExtensionsCenterTab: state.openExtensionsCenterTab,
+      openGraphTab: state.openGraphTab,
     })),
   );
   const pendingDiff = useAIStore((state) => state.pendingDiff);
@@ -341,6 +359,68 @@ function App() {
     count: number;
     timer: ReturnType<typeof setTimeout> | null;
   }>({ count: 0, timer: null });
+
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isAndroid() || window.innerWidth < 768;
+  });
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(isAndroid() || window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Android back button handling
+  useEffect(() => {
+    const handleAndroidBack = (e: Event) => {
+      if (showMobileMenu) {
+        e.preventDefault();
+        setShowMobileMenu(false);
+        return;
+      }
+      const ui = useUIStore.getState();
+      if (ui.leftSidebarOpen) {
+        e.preventDefault();
+        ui.setLeftSidebarOpen(false);
+        return;
+      }
+      if (ui.rightSidebarOpen) {
+        e.preventDefault();
+        ui.setRightSidebarOpen(false);
+        return;
+      }
+      if (ui.isSettingsOpen) {
+        e.preventDefault();
+        ui.setSettingsOpen(false);
+        return;
+      }
+    };
+    window.addEventListener("lumina:android-back", handleAndroidBack);
+    return () => window.removeEventListener("lumina:android-back", handleAndroidBack);
+  }, [showMobileMenu]);
+
+  // Mobile: close drawers when active file or tab changes
+  const prevCurrentFileRef = useRef(currentFile);
+  useEffect(() => {
+    if (isMobile && currentFile && currentFile !== prevCurrentFileRef.current) {
+      useUIStore.getState().setLeftSidebarOpen(false);
+    }
+    prevCurrentFileRef.current = currentFile;
+  }, [currentFile, isMobile]);
+
+  const prevActiveTabIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const activeTabId = activeTabIndex >= 0 ? tabs[activeTabIndex]?.id : null;
+    if (isMobile && activeTabId && activeTabId !== prevActiveTabIdRef.current) {
+      useUIStore.getState().setLeftSidebarOpen(false);
+      useUIStore.getState().setRightSidebarOpen(false);
+    }
+    prevActiveTabIdRef.current = activeTabId;
+  }, [activeTabIndex, tabs, isMobile]);
 
   const handleCreateFileFromNewTab = useCallback(() => {
     if (vaultPath) {
@@ -599,6 +679,9 @@ function App() {
     toggleRightSidebar,
     splitView,
     isDarkMode,
+    toggleTheme,
+    isSettingsOpen,
+    setSettingsOpen,
     isSkillManagerOpen,
     setSkillManagerOpen,
     diagnosticsEnabled,
@@ -616,6 +699,9 @@ function App() {
       toggleRightSidebar: state.toggleRightSidebar,
       splitView: state.splitView,
       isDarkMode: state.isDarkMode,
+      toggleTheme: state.toggleTheme,
+      isSettingsOpen: state.isSettingsOpen,
+      setSettingsOpen: state.setSettingsOpen,
       isSkillManagerOpen: state.isSkillManagerOpen,
       setSkillManagerOpen: state.setSkillManagerOpen,
       diagnosticsEnabled: state.diagnosticsEnabled,
@@ -988,7 +1074,11 @@ function App() {
 
   useEffect(() => {
     if (!vaultPath) return;
-    useUIStore.getState().setLeftSidebarOpen(true);
+    if (!isMobile) {
+      useUIStore.getState().setLeftSidebarOpen(true);
+    } else {
+      useUIStore.getState().setLeftSidebarOpen(false);
+    }
     useUIStore.getState().setRightSidebarOpen(false);
     void setWindowSize(
       MAIN_WORKSPACE_WINDOW_WIDTH,
@@ -996,7 +1086,7 @@ function App() {
     ).catch((error) => {
       console.warn("[App] Failed to restore workspace window size:", error);
     });
-  }, [vaultPath]);
+  }, [vaultPath, isMobile]);
 
   // Handle resize - must be before conditional returns
   // VS Code 风格：拖动可以折叠/展开面板
@@ -1085,6 +1175,11 @@ function App() {
   }, [leftSidebarOpen, leftSidebarWidth, rightSidebarOpen, rightSidebarWidth]);
 
   useEffect(() => {
+    if (isMobile) {
+      if (isMainCollapsed) setIsMainCollapsed(false);
+      return;
+    }
+
     const updateMainCollapse = () => {
       if (!rightSidebarOpen) {
         if (isMainCollapsed) setIsMainCollapsed(false);
@@ -1102,7 +1197,7 @@ function App() {
     updateMainCollapse();
     window.addEventListener("resize", updateMainCollapse);
     return () => window.removeEventListener("resize", updateMainCollapse);
-  }, [getAvailableMainWidth, isMainCollapsed, rightSidebarOpen]);
+  }, [getAvailableMainWidth, isMainCollapsed, rightSidebarOpen, isMobile]);
 
   // Welcome screen when no vault is open
   if (!vaultPath) {
@@ -1161,60 +1256,65 @@ function App() {
           ref={layoutRef}
           className="flex-1 flex overflow-hidden transition-colors duration-300"
         >
-          <div className="flex min-h-0 flex-shrink-0 flex-col">
-            {showMacLeftPaneTopBar ? <MacLeftPaneTopBar /> : null}
+          {/* Desktop Left Ribbon & Sidebar */}
+          {!isMobile && (
+            <div className="flex min-h-0 flex-shrink-0 flex-col">
+              {showMacLeftPaneTopBar ? <MacLeftPaneTopBar /> : null}
 
-            <div className="flex min-h-0 flex-1">
-              {/* Left Ribbon (Icon Bar) */}
-              <div ref={ribbonRef} className="flex-shrink-0">
-                <Ribbon
-                  showMacTrafficLightSafeArea={
-                    showMacRibbonTrafficLightSafeArea
-                  }
-                  flushTopSpacing={showMacLeftPaneTopBar}
-                />
-              </div>
+              <div className="flex min-h-0 flex-1">
+                {/* Left Ribbon (Icon Bar) */}
+                <div ref={ribbonRef} className="flex-shrink-0">
+                  <Ribbon
+                    showMacTrafficLightSafeArea={
+                      showMacRibbonTrafficLightSafeArea
+                    }
+                    flushTopSpacing={showMacLeftPaneTopBar}
+                  />
+                </div>
 
-              {/* Left Sidebar (File Tree) */}
-              <div
-                data-side="left"
-                data-open={leftSidebarOpen ? "true" : "false"}
-                className={`app-sidebar-shell flex-shrink-0 ${
-                  leftSidebarOpen ? "opacity-100" : "opacity-0"
-                }`}
-                style={{ width: leftSidebarOpen ? leftSidebarWidth : 0 }}
-              >
+                {/* Left Sidebar (File Tree) */}
                 <div
-                  className="app-sidebar-inner"
-                  style={{ width: leftSidebarWidth }}
+                  data-side="left"
+                  data-open={leftSidebarOpen ? "true" : "false"}
+                  className={`app-sidebar-shell flex-shrink-0 ${
+                    leftSidebarOpen ? "opacity-100" : "opacity-0"
+                  }`}
+                  style={{ width: leftSidebarOpen ? leftSidebarWidth : 0 }}
                 >
-                  <DevProfiler id="Sidebar">
-                    <PanelErrorBoundary label="Sidebar">
-                      <Sidebar
-                        onSwitchVault={() =>
-                          useFileStore.getState().clearVault()
-                        }
-                      />
-                    </PanelErrorBoundary>
-                  </DevProfiler>
+                  <div
+                    className="app-sidebar-inner"
+                    style={{ width: leftSidebarWidth }}
+                  >
+                    <DevProfiler id="Sidebar">
+                      <PanelErrorBoundary label="Sidebar">
+                        <Sidebar
+                          onSwitchVault={() =>
+                            useFileStore.getState().clearVault()
+                          }
+                        />
+                      </PanelErrorBoundary>
+                    </DevProfiler>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Left Resize Handle - VS Code 风格，始终显示，可拖拽展开/折叠 */}
-          <div className="relative flex-shrink-0 h-full z-20 bg-popover dark:bg-background">
-            <ResizeHandle
-              direction="left"
-              onResize={handleLeftResize}
-              onDoubleClick={toggleLeftSidebar}
-            />
-          </div>
+          {/* Left Resize Handle - Desktop only */}
+          {!isMobile && (
+            <div className="relative flex-shrink-0 h-full z-20 bg-popover dark:bg-background">
+              <ResizeHandle
+                direction="left"
+                onResize={handleLeftResize}
+                onDoubleClick={toggleLeftSidebar}
+              />
+            </div>
+          )}
 
           {/* Main content - switches between Editor, Graph, Split, Diff and AI Chat based on state */}
           <main
             className={`relative flex flex-col overflow-hidden min-w-0 bg-popover dark:bg-background transition-[width,opacity] duration-200 ${
-              isMainCollapsed
+              !isMobile && isMainCollapsed
                 ? "flex-none w-0 opacity-0 pointer-events-none"
                 : "flex-1 w-auto opacity-100"
             }`}
@@ -1319,7 +1419,7 @@ function App() {
             </PanelErrorBoundary>
           </main>
 
-          {isMainCollapsed ? (
+          {!isMobile && isMainCollapsed ? (
             <CollapsedMainSidebarControls
               leftSidebarOpen={leftSidebarOpen}
               rightSidebarOpen={rightSidebarOpen}
@@ -1330,46 +1430,287 @@ function App() {
             />
           ) : null}
 
-          {/* Right Resize Handle - VS Code 风格，始终显示，可拖拽展开/折叠 */}
-          <div className="relative flex-shrink-0 h-full z-20 bg-popover">
-            <ResizeHandle
-              direction="right"
-              onResize={handleRightResize}
-              onDoubleClick={toggleRightSidebar}
-            />
-          </div>
+          {/* Right Resize Handle - Desktop only */}
+          {!isMobile && (
+            <div className="relative flex-shrink-0 h-full z-20 bg-popover">
+              <ResizeHandle
+                direction="right"
+                onResize={handleRightResize}
+                onDoubleClick={toggleRightSidebar}
+              />
+            </div>
+          )}
 
-          {/* Right Sidebar */}
-          <div
-            data-side="right"
-            data-open={rightSidebarOpen ? "true" : "false"}
-            className={`app-sidebar-shell ${
-              rightSidebarOpen ? "opacity-100" : "opacity-0"
-            } ${isMainCollapsed && rightSidebarOpen ? "min-w-0 flex-1" : "flex-shrink-0"}`}
-            style={{
-              width:
-                rightSidebarOpen && !isMainCollapsed
-                  ? rightSidebarWidth
-                  : rightSidebarOpen
-                    ? undefined
-                    : 0,
-            }}
-          >
+          {/* Right Sidebar - Desktop only */}
+          {!isMobile && (
             <div
-              className="app-sidebar-inner"
+              data-side="right"
+              data-open={rightSidebarOpen ? "true" : "false"}
+              className={`app-sidebar-shell ${
+                rightSidebarOpen ? "opacity-100" : "opacity-0"
+              } ${isMainCollapsed && rightSidebarOpen ? "min-w-0 flex-1" : "flex-shrink-0"}`}
               style={{
                 width:
-                  isMainCollapsed && rightSidebarOpen
-                    ? "100%"
-                    : rightSidebarWidth,
+                  rightSidebarOpen && !isMainCollapsed
+                    ? rightSidebarWidth
+                    : rightSidebarOpen
+                      ? undefined
+                      : 0,
               }}
             >
-              <DevProfiler id="RightPanel">
-                <RightPanel />
-              </DevProfiler>
+              <div
+                className="app-sidebar-inner"
+                style={{
+                  width:
+                    isMainCollapsed && rightSidebarOpen
+                      ? "100%"
+                      : rightSidebarWidth,
+                }}
+              >
+                <DevProfiler id="RightPanel">
+                  <RightPanel />
+                </DevProfiler>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Left Sidebar Drawer */}
+        {isMobile && leftSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+              onClick={() => setLeftSidebarOpen(false)}
+            />
+            <div className="relative z-10 flex h-full w-[82vw] max-w-[320px] flex-col bg-popover dark:bg-background border-r border-border shadow-2xl animate-in slide-in-from-left duration-200">
+              <div className="flex h-12 items-center justify-between px-3 border-b border-border/60">
+                <span className="font-semibold text-sm text-foreground">
+                  {t.sidebar.vault || "Vault"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLeftSidebarOpen(false)}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  aria-label={t.common.close}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <DevProfiler id="SidebarMobile">
+                  <PanelErrorBoundary label="Sidebar">
+                    <Sidebar
+                      onSwitchVault={() => {
+                        setLeftSidebarOpen(false);
+                        useFileStore.getState().clearVault();
+                      }}
+                    />
+                  </PanelErrorBoundary>
+                </DevProfiler>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile Right Panel Drawer */}
+        {isMobile && rightSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+              onClick={() => setRightSidebarOpen(false)}
+            />
+            <div className="relative z-10 flex h-full w-[90vw] max-w-[420px] flex-col bg-popover dark:bg-background border-l border-border shadow-2xl animate-in slide-in-from-right duration-200">
+              <div className="flex h-12 items-center justify-between px-3 border-b border-border/60">
+                <span className="font-semibold text-sm text-foreground">
+                  {rightSidebarToggleLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRightSidebarOpen(false)}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  aria-label={t.common.close}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <DevProfiler id="RightPanelMobile">
+                  <RightPanel />
+                </DevProfiler>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Bottom Navigation Bar */}
+        {isMobile && (
+          <nav
+            aria-label="Mobile Navigation"
+            className="relative z-30 flex h-14 shrink-0 items-center justify-around border-t border-border/70 bg-popover dark:bg-background px-2"
+            style={{ paddingBottom: "max(0px, var(--sab))" }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setRightSidebarOpen(false);
+                setLeftSidebarOpen(!leftSidebarOpen);
+              }}
+              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                leftSidebarOpen ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-label={t.sidebar.vault || "Files"}
+            >
+              <Folder size={18} />
+              <span>{t.sidebar.vault || "Files"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("open-command-menu"))}
+              className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={t.overview.openFile || "Search"}
+            >
+              <Search size={18} />
+              <span>{t.overview.openFile || "Search"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCreateFileFromNewTab}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md active:scale-95 transition-transform"
+              aria-label={t.overview.createNewFile || "New Note"}
+            >
+              <Plus size={20} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setLeftSidebarOpen(false);
+                setRightSidebarOpen(!rightSidebarOpen);
+              }}
+              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                rightSidebarOpen ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-label={t.common.aiChatTab || "AI Chat"}
+            >
+              <Bot size={18} />
+              <span>{t.common.aiChatTab || "AI Chat"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowMobileMenu(true)}
+              className="flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={t.ribbon.settings || "More"}
+            >
+              <Menu size={18} />
+              <span>{t.ribbon.settings || "More"}</span>
+            </button>
+          </nav>
+        )}
+
+        {/* Mobile More Actions Sheet */}
+        {isMobile && showMobileMenu && (
+          <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-200"
+              onClick={() => setShowMobileMenu(false)}
+            />
+            <div
+              className="relative z-10 flex flex-col rounded-t-2xl border-t border-border bg-popover dark:bg-background p-4 shadow-2xl animate-in slide-in-from-bottom duration-200"
+              style={{ paddingBottom: "max(1rem, var(--sab))" }}
+            >
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30" />
+              <div className="flex items-center justify-between pb-3 border-b border-border/60 mb-2">
+                <span className="font-semibold text-base text-foreground">
+                  {t.ribbon.settings || "Menu"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 py-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTheme();
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-muted/30 text-left hover:bg-accent transition-colors"
+                >
+                  {isDarkMode ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-indigo-500" />}
+                  <span className="text-sm font-medium">
+                    {isDarkMode ? "Light Mode" : "Dark Mode"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    openGraphTab();
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-muted/30 text-left hover:bg-accent transition-colors"
+                >
+                  <Network size={18} className="text-primary" />
+                  <span className="text-sm font-medium">{t.graph.title || "Graph"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    openExtensionsCenterTab("plugins");
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-muted/30 text-left hover:bg-accent transition-colors"
+                >
+                  <Puzzle size={18} className="text-purple-500" />
+                  <span className="text-sm font-medium">{t.plugins.modalTitle || "Plugins"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    setSettingsOpen(true);
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-muted/30 text-left hover:bg-accent transition-colors"
+                >
+                  <SettingsIcon size={18} className="text-muted-foreground" />
+                  <span className="text-sm font-medium">{t.ribbon.settings || "Settings"}</span>
+                </button>
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    useFileStore.getState().clearVault();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-destructive hover:bg-destructive/10 text-sm font-medium transition-colors"
+                >
+                  <LogOut size={16} />
+                  <span>{t.sidebar.switchVault || "Switch Vault"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Settings Modal */}
+        {isMobile && (
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setSettingsOpen(false)}
+            onOpenUpdateModal={() => {}}
+          />
+        )}
 
         {/* Command Menu (Cmd+P) */}
         <CommandMenuProvider />
@@ -1403,7 +1744,7 @@ function App() {
           }}
         />
 
-        <PluginStatusBar />
+        {!isMobile && <PluginStatusBar />}
         <PluginShellSlotHost slotId="app-bottom" />
         <PluginContextMenuHost />
         <ErrorNotifications />

@@ -5,8 +5,8 @@ import {
   useReducedMotion,
   type Variants,
 } from "framer-motion";
-import { FolderOpen, FolderPlus, ArrowLeft } from "lucide-react";
-import { openDialog } from "@/lib/host";
+import { FolderOpen, FolderPlus, ArrowLeft, Sparkles } from "lucide-react";
+import { openDialog, isAndroid, getDocumentDir } from "@/lib/host";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useMacTopChromeEnabled } from "@/components/layout/MacTopChrome";
@@ -51,6 +51,7 @@ export function WelcomeScreen({
   const showMacWindowInset = useMacTopChromeEnabled();
   const prefersReducedMotion = useReducedMotion();
   const logoUrl = resolveRendererAssetUrl("lumina.png");
+  const onMobileDevice = isAndroid();
 
   const vaults = useRecentVaultStore((s) => s.vaults);
   const removeVault = useRecentVaultStore((s) => s.removeVault);
@@ -73,6 +74,20 @@ export function WelcomeScreen({
       console.error("[WelcomeScreen] Open folder dialog failed:", error);
     }
   }, [onOpenVault, t.welcome.openFolder]);
+
+  const handleOpenDefaultMobileVault = useCallback(async () => {
+    try {
+      const docDir = await getDocumentDir();
+      if (docDir) {
+        onOpenVault(docDir);
+      } else {
+        onOpenVault();
+      }
+    } catch (e) {
+      console.error("[WelcomeScreen] Default vault open failed:", e);
+      onOpenVault();
+    }
+  }, [onOpenVault]);
 
   const handleShowCreate = useCallback(() => {
     setVaultName("");
@@ -116,12 +131,14 @@ export function WelcomeScreen({
             <LanguageSwitcher compact stopPropagation />
           </div>
         ) : (
-          <LanguageSwitcher className="absolute top-4 right-4 z-10" showLabel />
+          <div className="absolute top-[max(0.75rem,var(--sat))] right-4 z-20">
+            <LanguageSwitcher showLabel={false} />
+          </div>
         )}
 
-        <div className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Left sidebar: Recent vaults */}
-          <div className="w-[320px] shrink-0 border-r border-border flex flex-col">
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto md:overflow-hidden">
+          {/* Left sidebar: Recent vaults (hidden on small/mobile screens) */}
+          <div className="hidden md:flex w-[320px] shrink-0 border-r border-border flex-col">
             <RecentVaultList
               vaults={vaults}
               onSelect={(path) => onOpenVault(path)}
@@ -130,27 +147,26 @@ export function WelcomeScreen({
             />
           </div>
 
-          {/* Right pane */}
-          <div className="flex-1 flex items-center justify-center px-10 py-10 overflow-y-auto">
+          {/* Right/Main pane */}
+          <div className="flex-1 flex items-center justify-center px-4 py-8 md:px-10 md:py-10 overflow-y-auto">
             <motion.div
               variants={containerVariants}
               initial={prefersReducedMotion ? "visible" : "hidden"}
               animate="visible"
-              className="flex w-full max-w-[560px] -translate-y-7 flex-col"
+              className="flex w-full max-w-[460px] md:max-w-[560px] md:-translate-y-7 flex-col"
             >
-              {/* Logo */}
+              {/* Logo & Title */}
               <motion.div
                 variants={fadeUpVariants}
-                className="-translate-y-11 mb-[76px] flex items-center gap-[22px]"
+                className="mb-8 md:mb-[56px] flex items-center gap-4 md:gap-[22px] justify-center md:justify-start"
               >
                 <img
                   src={logoUrl}
                   alt="Lumina Note"
-                  className="h-[68px] w-[68px] rounded-ui-xl"
+                  className="h-14 w-14 md:h-[68px] md:w-[68px] rounded-ui-xl shadow-sm"
                 />
 
-                {/* Title */}
-                <h1 className="text-[36px] font-semibold leading-tight tracking-normal text-foreground">
+                <h1 className="text-2xl md:text-[36px] font-semibold leading-tight tracking-normal text-foreground">
                   {t.welcome.title}
                 </h1>
               </motion.div>
@@ -168,17 +184,30 @@ export function WelcomeScreen({
                           ? {}
                           : { opacity: 0, transition: { duration: 0.15 } }
                       }
-                      className="w-full flex flex-col gap-[18px]"
+                      className="w-full flex flex-col gap-3 md:gap-[18px]"
                     >
+                      {onMobileDevice && (
+                        <ActionCard
+                          icon={Sparkles}
+                          title="Quick Start (Default Vault)"
+                          action={{
+                            label: t.common.open,
+                            variant: "primary",
+                            onClick: handleOpenDefaultMobileVault,
+                          }}
+                        />
+                      )}
+
                       <ActionCard
                         icon={FolderOpen}
                         title={t.welcome.openFolder}
                         action={{
                           label: t.common.open,
-                          variant: "primary",
+                          variant: onMobileDevice ? "secondary" : "primary",
                           onClick: handleOpenExisting,
                         }}
                       />
+
                       {onCreateVault && (
                         <ActionCard
                           icon={FolderPlus}
@@ -189,6 +218,32 @@ export function WelcomeScreen({
                             onClick: handleShowCreate,
                           }}
                         />
+                      )}
+
+                      {/* Mobile Recent Vaults List */}
+                      {vaults.length > 0 && (
+                        <div className="mt-4 md:hidden">
+                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                            {t.welcome.recentVaults}
+                          </h3>
+                          <div className="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto">
+                            {vaults.slice(0, 3).map((v) => (
+                              <button
+                                key={v.path}
+                                type="button"
+                                onClick={() => onOpenVault(v.path)}
+                                className="flex items-center justify-between p-3 rounded-ui-lg border border-border/70 bg-muted/40 text-left hover:bg-accent active:scale-[0.99] transition-all"
+                              >
+                                <span className="truncate font-medium text-foreground text-sm">
+                                  {v.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground truncate max-w-[140px] ml-2">
+                                  {v.path}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </motion.div>
                   ) : (

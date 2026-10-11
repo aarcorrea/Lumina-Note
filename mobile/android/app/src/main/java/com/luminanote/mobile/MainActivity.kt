@@ -92,7 +92,9 @@ class MainActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(webView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(0, systemBars.top, 0, 0)
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottomPadding = if (ime.bottom > 0) ime.bottom else systemBars.bottom
+            v.setPadding(0, systemBars.top, 0, bottomPadding)
             insets
         }
 
@@ -395,12 +397,17 @@ class MainActivity : AppCompatActivity() {
                 webView.evaluateJavascript(
                     """
                     (function() {
-                        const event = new CustomEvent('lumina:android-back');
-                        return window.dispatchEvent(event);
+                        const event = new CustomEvent('lumina:android-back', { cancelable: true });
+                        const allowed = window.dispatchEvent(event);
+                        return allowed ? "continue" : "handled";
                     })();
                     """.trimIndent()
                 ) { result ->
-                    if (result != "false" && webView.canGoBack()) {
+                    val cleanRes = result?.replace("\"", "")?.trim()
+                    if (cleanRes == "handled") {
+                        return@evaluateJavascript
+                    }
+                    if (webView.canGoBack()) {
                         webView.goBack()
                     } else {
                         isEnabled = false

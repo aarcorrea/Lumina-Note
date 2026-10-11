@@ -115,9 +115,9 @@ export function SettingsModal({
         </div>
 
         {/* 主体：左导航 + 右内容 */}
-        <div className="flex flex-1 min-h-0">
-          {/* 左侧导航 */}
-          <nav className="w-[160px] shrink-0 border-r border-border/60 bg-muted/30 p-2 space-y-1">
+        <div className="flex flex-1 min-h-0 flex-col md:flex-row">
+          {/* 导航 (移动端横向滑动，桌面端纵向侧栏) */}
+          <nav className="flex md:flex-col overflow-x-auto md:w-[160px] shrink-0 border-b md:border-b-0 md:border-r border-border/60 bg-muted/30 p-2 gap-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TAB_ORDER.map((tabId) => {
               const Icon = TAB_ICONS[tabId];
               const isActive = activeTab === tabId;
@@ -125,7 +125,7 @@ export function SettingsModal({
                 <button
                   key={tabId}
                   onClick={() => setActiveTab(tabId)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-ui-control transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-ui-control whitespace-nowrap transition-colors ${
                     isActive
                       ? "bg-primary/10 text-primary font-medium"
                       : "text-foreground/70 hover:bg-muted hover:text-foreground"
@@ -139,7 +139,7 @@ export function SettingsModal({
           </nav>
 
           {/* 右侧内容 */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8">
             {renderContent()}
           </div>
         </div>

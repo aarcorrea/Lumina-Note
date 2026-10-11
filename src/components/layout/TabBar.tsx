@@ -1295,6 +1295,7 @@ export function TabBar() {
               className={cn(
                 TABBAR_ICON_BUTTON_CLASS,
                 splitView && TABBAR_ICON_BUTTON_OPEN_CLASS,
+                "hidden sm:flex",
               )}
             >
               <Columns size={16} />

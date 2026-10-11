@@ -53,7 +53,13 @@ export function Ribbon({
   const REPO_URL = "https://github.com/blueberrycongee/Lumina-Note";
   const [showSettings, setShowSettings] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const closeSettings = useCallback(() => setShowSettings(false), []);
+  const isSettingsOpenStore = useUIStore((s) => s.isSettingsOpen);
+  const setSettingsOpenStore = useUIStore((s) => s.setSettingsOpen);
+  const closeSettings = useCallback(() => {
+    setShowSettings(false);
+    setSettingsOpenStore(false);
+  }, [setSettingsOpenStore]);
+  const isSettingsModalOpen = showSettings || isSettingsOpenStore;
   const closeUpdateModal = useCallback(() => setShowUpdateModal(false), []);
   const { t } = useLocaleStore();
   const {
@@ -539,7 +545,7 @@ export function Ribbon({
 
       {/* Settings Modal */}
       <SettingsModal
-        isOpen={showSettings}
+        isOpen={isSettingsModalOpen}
         onClose={closeSettings}
         onOpenUpdateModal={handleOpenUpdateFromSettings}
       />
