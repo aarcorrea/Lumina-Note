@@ -52,7 +52,7 @@ export function MobileHeader({
   };
 
   const handleToggleMode = useCallback(() => {
-    setEditorMode(editorMode === "live" ? "preview" : "live");
+    setEditorMode(editorMode === "reading" ? "live" : "reading");
   }, [editorMode, setEditorMode]);
 
   return (
@@ -120,14 +120,14 @@ export function MobileHeader({
               type="button"
               onClick={handleToggleMode}
               className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                editorMode === "preview"
+                editorMode === "reading"
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
-              title={editorMode === "preview" ? "Edit Mode" : "Reading Mode"}
+              title={editorMode === "reading" ? "Live Preview" : "Reading Mode"}
               aria-label="Toggle Reading Mode"
             >
-              {editorMode === "preview" ? <Edit3 size={17} /> : <Eye size={17} />}
+              {editorMode === "reading" ? <Edit3 size={17} /> : <Eye size={17} />}
             </button>
 
             <button

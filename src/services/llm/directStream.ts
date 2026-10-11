@@ -1,5 +1,5 @@
-import type { AIConfig } from "@/services/ai/ai";
-import { PROVIDER_MODELS, type LLMProviderType } from "./providers/models";
+import { PROVIDER_MODELS } from "./providers/models";
+import type { LLMProviderType } from "./types";
 
 export interface DirectStreamChunk {
   type: "text" | "reasoning" | "error";
