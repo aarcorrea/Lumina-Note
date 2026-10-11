@@ -59,12 +59,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LuminaNote-android-debug
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: LuminaNote-android-release
-          path: mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: mobile/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
