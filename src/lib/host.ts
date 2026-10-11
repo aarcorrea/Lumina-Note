@@ -718,6 +718,14 @@ export async function homeDir(): Promise<string> {
   return invoke<string>("plugin:path|home_dir");
 }
 
+export async function getDocumentDir(): Promise<string> {
+  return invoke<string>("plugin:path|document_dir");
+}
+
+export async function documentDir(): Promise<string> {
+  return invoke<string>("plugin:path|document_dir");
+}
+
 export async function tempDir(): Promise<string> {
   return invoke<string>("plugin:path|temp_dir");
 }

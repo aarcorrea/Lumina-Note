@@ -122,7 +122,7 @@ class LuminaNativeBridge(
             "get_version" -> platformHandler.getVersion()
             "plugin:path|home_dir" -> platformHandler.getHomeDir()
             "plugin:path|app_data_dir", "plugin:path|app_config_dir", "plugin:path|app_local_data_dir" -> platformHandler.getAppDataDir()
-            "plugin:path|document_dir" -> platformHandler.getDocumentDir()
+            "get_document_dir", "plugin:path|document_dir" -> platformHandler.getDocumentDir()
             "plugin:path|desktop_dir", "plugin:path|download_dir", "plugin:path|picture_dir" -> platformHandler.getHomeDir()
             "plugin:path|join" -> platformHandler.pathJoin(args)
             "plugin:path|basename" -> platformHandler.pathBasename(args)
