@@ -1865,7 +1865,6 @@ export function initOpencodeAgentListeners(): void {
     });
   }
 
-  const store = useOpencodeAgent.getState();
   if (!serverChangedUnlisten) {
     const bridge = typeof window !== "undefined" ? window.lumina?.opencode : undefined;
     if (bridge?.onServerChanged) {
