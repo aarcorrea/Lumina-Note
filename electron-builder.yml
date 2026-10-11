@@ -7,7 +7,7 @@ productName: Metis Notes
 
 publish:
   provider: github
-  owner: blueberrycongee
+  owner: aarcorrea
   repo: Lumina-Note
   releaseType: release
 

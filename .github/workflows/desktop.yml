@@ -1,0 +1,126 @@
+name: Desktop Build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    name: Build ${{ matrix.platform_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform_name: Linux
+            script: dist:linux
+            artifact_name: MetisNotes-linux-x64
+            artifact_path: release/*.AppImage
+          - os: windows-latest
+            platform_name: Windows
+            script: dist:win
+            artifact_name: MetisNotes-windows-x64
+            artifact_path: release/*.exe
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Bun
+        shell: bash
+        env:
+          BUN_VERSION: "1.3.13"
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS" in
+            Linux)   target="bun-linux-x64";   binname="bun";;
+            Windows) target="bun-windows-x64"; binname="bun.exe";;
+            *) echo "Unsupported runner: $RUNNER_OS"; exit 1;;
+          esac
+          url="https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${target}.zip"
+          install_dir="$HOME/.bun/bin"
+          mkdir -p "$install_dir"
+          tmp="$(mktemp -d)"
+          echo "Downloading $url ..."
+          curl -fsSL \
+               --retry 8 --retry-delay 10 --retry-max-time 600 \
+               --retry-all-errors \
+               -o "$tmp/bun.zip" "$url"
+          unzip -o -q "$tmp/bun.zip" -d "$tmp/extract"
+          cp "$tmp/extract/${target}/$binname" "$install_dir/$binname"
+          chmod +x "$install_dir/$binname" || true
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            echo "$(cygpath -w "$install_dir")" >> "$GITHUB_PATH"
+          else
+            echo "$install_dir" >> "$GITHUB_PATH"
+          fi
+          "$install_dir/$binname" --version
+
+      - name: Checkout opencode at pinned commit
+        uses: actions/checkout@v4
+        with:
+          repository: anomalyco/opencode
+          ref: 6aa475fcac39cacda4730142314985c64b200bb5
+          path: thirdparty/opencode
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Install opencode dependencies
+        shell: bash
+        working-directory: thirdparty/opencode
+        run: bun install --frozen-lockfile
+
+      - name: Build opencode server bundle
+        shell: bash
+        run: npm run opencode:bundle
+
+      - name: Stage native modules for electron-builder
+        shell: bash
+        run: npm run stage:native
+
+      - name: Build renderer + main
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: npm run build
+
+      - name: Package via electron-builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in \
+            CSC_LINK CSC_KEY_PASSWORD \
+            WIN_CSC_LINK WIN_CSC_KEY_PASSWORD
+          do
+            if [ -z "${!key:-}" ]; then
+              unset "$key"
+            fi
+          done
+          npm run ${{ matrix.script }} -- --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Upload ${{ matrix.platform_name }} Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error

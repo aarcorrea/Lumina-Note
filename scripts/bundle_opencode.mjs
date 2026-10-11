@@ -31,7 +31,7 @@ if (!fs.existsSync(path.join(opencodeDir, "node_modules"))) {
   );
 }
 
-const bun = process.env.BUN_PATH || "bun";
+const bun = process.env.BUN_PATH || (process.platform === "win32" ? "bun.exe" : "bun");
 const result = spawnSync(
   bun,
   ["run", path.join("script", "build-node.ts")],

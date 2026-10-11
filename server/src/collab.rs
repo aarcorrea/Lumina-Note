@@ -246,7 +246,7 @@ async fn handle_collab_socket(
     // 2. Send existing awareness states from all current peers
     {
         let awareness_states = room.awareness.read().await;
-        for (_pid, raw) in awareness_states.iter() {
+        for raw in awareness_states.values() {
             let mut msg = Vec::with_capacity(1 + raw.len());
             msg.push(MSG_AWARENESS);
             msg.extend_from_slice(raw);
