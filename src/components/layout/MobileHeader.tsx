@@ -9,9 +9,8 @@ import {
   AlignLeft,
   FileText,
   Network,
-  RotateCcw,
 } from "lucide-react";
-import { useFileStore, type Tab } from "@/stores/useFileStore";
+import type { Tab } from "@/stores/useFileStore";
 import { useUIStore } from "@/stores/useUIStore";
 import { useLocaleStore } from "@/stores/useLocaleStore";
 import { useOpencodeAgent } from "@/stores/useOpencodeAgent";
@@ -21,7 +20,7 @@ interface MobileHeaderProps {
   currentFile: string | null;
   onToggleSidebar: () => void;
   onToggleOutline: () => void;
-  onOpenSearch: () => void;
+  onOpenSearch?: () => void;
 }
 
 export function MobileHeader({
@@ -43,7 +42,7 @@ export function MobileHeader({
 
   const getTitle = () => {
     if (isAIChat) return t.common?.aiChatTab || "AI Assistant";
-    if (isGraph) return t.overview?.graphView || "Graph View";
+    if (isGraph) return t.graph?.title || "Graph View";
     if (currentFile) {
       const parts = currentFile.split(/[/\\]/);
       const name = parts[parts.length - 1] || currentFile;
@@ -68,10 +67,20 @@ export function MobileHeader({
               ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
           }`}
-          aria-label={t.sidebar?.vault || "Files"}
+          aria-label={t.sidebar?.files || "Files"}
         >
           <Folder size={18} />
         </button>
+        {onOpenSearch && (
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={t.overview?.globalSearch || "Search"}
+          >
+            <Search size={18} />
+          </button>
+        )}
       </div>
 
       {/* Center: Title */}

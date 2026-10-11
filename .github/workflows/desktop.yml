@@ -85,7 +85,12 @@ jobs:
       - name: Install opencode dependencies
         shell: bash
         working-directory: thirdparty/opencode
-        run: bun install
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            bun install --ignore-scripts
+          else
+            bun install
+          fi
 
       - name: Build opencode server bundle
         shell: bash

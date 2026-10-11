@@ -1507,7 +1507,7 @@ function App() {
             <div className="relative z-10 flex h-full w-[82vw] max-w-[320px] flex-col bg-popover dark:bg-background border-r border-border shadow-2xl animate-in slide-in-from-left duration-200">
               <div className="flex h-12 items-center justify-between px-3 border-b border-border/60">
                 <span className="font-semibold text-sm text-foreground">
-                  {t.sidebar.vault || "Vault"}
+                  {t.sidebar.files || "Files"}
                 </span>
                 <button
                   type="button"
@@ -1580,10 +1580,10 @@ function App() {
               className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                 leftSidebarOpen ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
               }`}
-              aria-label={t.sidebar.vault || "Files"}
+              aria-label={t.sidebar.files || "Files"}
             >
               <Folder size={18} />
-              <span>{t.sidebar.vault || "Files"}</span>
+              <span>{t.sidebar.files || "Files"}</span>
             </button>
 
             <button
@@ -1610,7 +1610,7 @@ function App() {
               onClick={() => {
                 setLeftSidebarOpen(false);
                 setRightSidebarOpen(false);
-                openAIMainTab();
+                useFileStore.getState().openAIMainTab();
               }}
               className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                 activeTab?.type === "ai-chat"
@@ -1721,7 +1721,7 @@ function App() {
                   className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-destructive hover:bg-destructive/10 text-sm font-medium transition-colors"
                 >
                   <LogOut size={16} />
-                  <span>{t.sidebar.switchVault || "Switch Vault"}</span>
+                  <span>{(t.sidebar as any)?.switchVault || "Switch Vault"}</span>
                 </button>
               </div>
             </div>
