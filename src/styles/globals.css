@@ -50,6 +50,10 @@ body.resizing iframe[data-codex-iframe="true"] {
 
 :root {
   --lumina-editor-line-height: 1.55;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
 
   /* ── Neutral spine (near-monochrome, cool-tinted) ─────────────────────── */
   --background: 220 16% 99%;          /* off-white, glare-reduced */
@@ -2960,3 +2964,30 @@ body.lumina-tab-dragging {
 .cm-block-land {
   animation: cm-block-land 350ms ease-out forwards;
 }
+
+/* ── Mobile & Android Optimizations ────────────────────────────────────── */
+html.is-android,
+html.is-android body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  /* Ensure touch targets meet minimum accessible touch size */
+  button, 
+  [role="button"],
+  .clickable-icon {
+    min-height: 38px;
+    min-width: 38px;
+  }
+
+  /* Safe area padding for mobile notches and bottom home indicators */
+  .mobile-safe-bottom {
+    padding-bottom: max(12px, var(--sab));
+  }
+
+  .mobile-safe-top {
+    padding-top: max(8px, var(--sat));
+  }
+}
+

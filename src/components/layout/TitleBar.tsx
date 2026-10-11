@@ -6,7 +6,7 @@
 
 import { Minus, Square, X, Copy } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
-import { isTauri, getCurrentWindow, platform, type Window } from "@/lib/host";
+import { isTauri, isAndroid, getCurrentWindow, platform, type Window } from "@/lib/host";
 import { resolveRendererAssetUrl } from "@/lib/appAsset";
 import { useLocaleStore } from "@/stores/useLocaleStore";
 
@@ -14,6 +14,9 @@ const isMacByNavigator = (): boolean =>
   typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
 
 export function TitleBar() {
+  if (isAndroid()) {
+    return null;
+  }
   const { t } = useLocaleStore();
   const tauriRuntime = isTauri();
   const logoUrl = resolveRendererAssetUrl("lumina.png");

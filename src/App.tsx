@@ -749,6 +749,26 @@ function App() {
     return unsubscribe;
   }, []);
 
+  // Android hardware / gesture back button handler
+  useEffect(() => {
+    const handleAndroidBack = (e: Event) => {
+      const ui = useUIStore.getState();
+      if (ui.rightSidebarOpen) {
+        ui.setRightSidebarOpen(false);
+        e.preventDefault?.();
+        return;
+      }
+      if (ui.leftSidebarOpen && window.innerWidth < 768) {
+        ui.setLeftSidebarOpen(false);
+        e.preventDefault?.();
+        return;
+      }
+    };
+    window.addEventListener("lumina:android-back", handleAndroidBack);
+    return () =>
+      window.removeEventListener("lumina:android-back", handleAndroidBack);
+  }, []);
+
   // 全局鼠标拖拽处理：模拟从文件树拖拽文件创建双链
   useEffect(() => {
     let dragIndicator: HTMLDivElement | null = null;

@@ -1,1399 +1,338 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-
 package com.luminanote.mobile
 
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.text.method.LinkMovementMethod
-import android.util.TypedValue
-import android.widget.TextView
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
+import android.view.ViewGroup
+import android.webkit.ConsoleMessage
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.border
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
-import io.noties.markwon.Markwon
-import io.noties.markwon.linkify.LinkifyPlugin
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
-import org.json.JSONArray
-import org.json.JSONObject
-import java.util.UUID
-import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.webkit.WebViewAssetLoader
+import com.luminanote.mobile.bridge.LuminaNativeBridge
+import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
-private data class Message(
-    val id: String = UUID.randomUUID().toString(),
-    val text: String,
-    val isOutgoing: Boolean,
-    val timeLabel: String,
-    val isStreaming: Boolean
-)
+class MainActivity : AppCompatActivity() {
 
-private data class AgentSession(
-    val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val isPinned: Boolean,
-    val unread: Int,
-    val messages: List<Message>,
-    val updatedAt: Long,
-    val createdAt: Long,
-    val lastMessagePreview: String?,
-    val lastMessageRole: String?
-)
+    private lateinit var webView: WebView
+    private lateinit var assetLoader: WebViewAssetLoader
+    private lateinit var bridge: LuminaNativeBridge
 
-private data class PairingPayload(
-    val token: String,
-    val port: Int,
-    val addresses: List<String>,
-    val wsPath: String,
-    val relayUrl: String?
-)
+    private var pendingFolderResult: String? = null
+    private var folderLatch: CountDownLatch? = null
 
-private data class SessionSummary(
-    val id: String,
-    val title: String,
-    val sessionType: String,
-    val createdAt: Long,
-    val updatedAt: Long,
-    val lastMessagePreview: String?,
-    val lastMessageRole: String?,
-    val messageCount: Int
-)
+    private var pendingFileResult: String? = null
+    private var fileLatch: CountDownLatch? = null
 
-private data class WorkspaceOption(
-    val id: String,
-    val name: String,
-    val path: String
-)
+    private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
 
-private data class AgentProfileOption(
-    val id: String,
-    val name: String,
-    val provider: String,
-    val model: String
-)
+    private val folderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            val path = uri.path ?: uri.toString()
+            pendingFolderResult = path
+        } else {
+            pendingFolderResult = null
+        }
+        folderLatch?.countDown()
+    }
 
-private data class MobileFileEntry(
-    val name: String,
-    val relativePath: String,
-    val isDir: Boolean,
-    val children: List<MobileFileEntry>?
-)
+    private val filePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            pendingFileResult = uris.first().path
+        } else {
+            pendingFileResult = null
+        }
+        fileLatch?.countDown()
+    }
 
-class MainActivity : ComponentActivity() {
+    private val fileUploadLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        fileUploadCallback?.onReceiveValue(uris.toTypedArray())
+        fileUploadCallback = null
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    LuminaMobileApp()
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        webView = WebView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        setContentView(webView)
+
+        ViewCompat.setOnApplyWindowInsetsListener(webView) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(0, systemBars.top, 0, 0)
+            insets
+        }
+
+        assetLoader = WebViewAssetLoader.Builder()
+            .setDomain("appassets.androidplatform.net")
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(this))
+            .build()
+
+        bridge = LuminaNativeBridge(this, webView)
+
+        setupWebView()
+        setupBackNavigation()
+
+        // Load the app
+        webView.loadUrl("https://appassets.androidplatform.net/assets/public/index.html")
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun setupWebView() {
+        val settings = webView.settings
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        settings.databaseEnabled = true
+        settings.allowFileAccess = false
+        settings.allowContentAccess = true
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        settings.useWideViewPort = true
+        settings.loadWithOverviewMode = true
+        settings.builtInZoomControls = false
+        settings.displayZoomControls = false
+        settings.cacheMode = WebSettings.LOAD_DEFAULT
+
+        webView.addJavascriptInterface(bridge, "__ANDROID_NATIVE__")
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView,
+                request: WebResourceRequest
+            ): WebResourceResponse? {
+                val url = request.url
+                // Fallback / index rewriting for SPA routing
+                val path = url.path ?: ""
+                val response = assetLoader.shouldInterceptRequest(url)
+                if (response == null && url.host == "appassets.androidplatform.net") {
+                    if (!path.contains(".")) {
+                        val indexUri = Uri.parse("https://appassets.androidplatform.net/assets/public/index.html")
+                        return assetLoader.shouldInterceptRequest(indexUri)
+                    }
                 }
+                return response
+            }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+                injectBridgeScript()
+            }
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    android.util.Log.d("LuminaWeb", "[${it.messageLevel()}] ${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
+                }
+                return true
+            }
+
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                fileUploadCallback?.onReceiveValue(null)
+                fileUploadCallback = filePathCallback
+                fileUploadLauncher.launch(arrayOf("*/*"))
+                return true
             }
         }
     }
-}
 
-@Composable
-fun LuminaMobileApp() {
-    val context = LocalContext.current
-    val store = remember { MobileGatewayStore(context) }
+    private fun injectBridgeScript() {
+        val bridgeInitJs = """
+        (function() {
+            if (window.__LUMINA_ANDROID_INSTALLED__) return;
+            window.__LUMINA_ANDROID_INSTALLED__ = true;
 
-    if (!store.isPaired) {
-        PairingScreen(store = store)
-        return
+            let reqId = 1;
+            const pendingRequests = new Map();
+            const eventHandlers = new Map();
+            const callbacks = new Map();
+            let nextCallbackId = 1;
+
+            const tauriInternals = {
+                invoke: function(cmd, args) {
+                    return new Promise(function(resolve, reject) {
+                        const id = reqId++;
+                        pendingRequests.set(id, { resolve: resolve, reject: reject });
+                        try {
+                            window.__ANDROID_NATIVE__.postMessage(JSON.stringify({
+                                id: id,
+                                cmd: cmd,
+                                args: args || {}
+                            }));
+                        } catch (err) {
+                            pendingRequests.delete(id);
+                            reject(err);
+                        }
+                    });
+                },
+                listen: function(event, handler) {
+                    if (!eventHandlers.has(event)) {
+                        eventHandlers.set(event, new Set());
+                    }
+                    eventHandlers.get(event).add(handler);
+                    return Promise.resolve(function() {
+                        const handlers = eventHandlers.get(event);
+                        if (handlers) {
+                            handlers.delete(handler);
+                        }
+                    });
+                },
+                emit: function(event, payload) {
+                    const handlers = eventHandlers.get(event);
+                    if (handlers) {
+                        handlers.forEach(function(fn) {
+                            try { fn({ event: event, payload: payload }); } catch (e) { console.error(e); }
+                        });
+                    }
+                    return Promise.resolve();
+                },
+                once: function(event, handler) {
+                    let unlisten;
+                    const wrapped = function(e) {
+                        if (unlisten) unlisten();
+                        handler(e);
+                    };
+                    return tauriInternals.listen(event, wrapped).then(function(u) {
+                        unlisten = u;
+                        return unlisten;
+                    });
+                },
+                transformCallback: function(callback, once) {
+                    const id = nextCallbackId++;
+                    callbacks.set(id, function(args) {
+                        if (once) callbacks.delete(id);
+                        return callback(args);
+                    });
+                    return id;
+                },
+                unregisterCallback: function(id) {
+                    callbacks.delete(id);
+                },
+                runCallback: function(id, args) {
+                    const cb = callbacks.get(id);
+                    return cb ? cb(args) : undefined;
+                },
+                __handleResponse: function(id, result, error) {
+                    const p = pendingRequests.get(id);
+                    if (!p) return;
+                    pendingRequests.delete(id);
+                    if (error) {
+                        p.reject(new Error(error));
+                    } else {
+                        p.resolve(result);
+                    }
+                },
+                __handleEvent: function(event, payload) {
+                    const handlers = eventHandlers.get(event);
+                    if (handlers) {
+                        handlers.forEach(function(fn) {
+                            try { fn({ event: event, payload: payload }); } catch (e) { console.error(e); }
+                        });
+                    }
+                }
+            };
+
+            window.__TAURI_INTERNALS__ = tauriInternals;
+            window.__TAURI__ = {
+                core: {
+                    invoke: tauriInternals.invoke
+                }
+            };
+
+            window.lumina = {
+                windowControls: {
+                    minimize: function() {},
+                    maximize: function() {},
+                    close: function() {}
+                }
+            };
+
+            window.__IS_ANDROID__ = true;
+            document.documentElement.classList.add('is-android');
+            console.log('[AndroidBridge] Native Android Host Bridge initialized');
+        })();
+        """.trimIndent()
+
+        webView.evaluateJavascript(bridgeInitJs, null)
     }
 
-    when (store.activeScreen) {
-        "file_browser" -> FileBrowserScreen(store = store)
-        "file_content" -> FileContentScreen(store = store)
-        else -> {
-            if (store.activeSessionId == null) {
-                ChatListScreen(store = store)
-            } else {
-                val index = store.sessions.indexOfFirst { it.id == store.activeSessionId }
-                if (index == -1) {
-                    store.activeSessionId = null
-                } else {
-                    ChatDetailScreen(store = store, sessionIndex = index)
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Dispatch event to web app to close modals / sidebars if any
+                webView.evaluateJavascript(
+                    """
+                    (function() {
+                        const event = new CustomEvent('lumina:android-back');
+                        const handled = window.dispatchEvent(event);
+                        return handled;
+                    })();
+                    """.trimIndent()
+                ) { result ->
+                    if (result != "false" && webView.canGoBack()) {
+                        webView.goBack()
+                    } else {
+                        // Let user exit or background app
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
                 }
-            }
-        }
-    }
-}
-
-private class MobileGatewayStore(private val context: Context) {
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private val okHttp = OkHttpClient()
-    private var webSocket: WebSocket? = null
-
-    var isPaired by mutableStateOf(PairingPrefs.isPaired(context))
-    var pairingPayload by mutableStateOf(PairingPrefs.getPayload(context))
-    var connectionStatus by mutableStateOf("Disconnected")
-    var errorMessage by mutableStateOf<String?>(null)
-    var activeSessionId by mutableStateOf<String?>(null)
-    val sessions = mutableStateListOf<AgentSession>()
-    var workspaces by mutableStateOf(listOf<WorkspaceOption>())
-    var agentProfiles by mutableStateOf(listOf<AgentProfileOption>())
-    var selectedWorkspaceId by mutableStateOf<String?>(null)
-    var selectedProfileId by mutableStateOf<String?>(null)
-    var fileTree by mutableStateOf(listOf<MobileFileEntry>())
-    var viewingFileContent by mutableStateOf<String?>(null)
-    var viewingFilePath by mutableStateOf<String?>(null)
-    var isLoadingFiles by mutableStateOf(false)
-    var isLoadingContent by mutableStateOf(false)
-    var activeScreen by mutableStateOf("chat_list")
-
-    private var lastSessionId: String? = null
-    private var pendingSessionCreateTitle: String? = null
-
-    init {
-        if (isPaired && pairingPayload.isNotBlank()) {
-            connect()
-        }
-    }
-
-    fun applyPairing(payload: String) {
-        pairingPayload = payload
-        PairingPrefs.setPayload(context, payload)
-        if (parsePairingPayload(payload) == null) {
-            errorMessage = "Invalid payload"
-            connectionStatus = "Invalid payload"
-            PairingPrefs.setPaired(context, false)
-            isPaired = false
-            return
-        }
-        PairingPrefs.setPaired(context, true)
-        isPaired = true
-        connect()
-    }
-
-    fun connect() {
-        val parsed = parsePairingPayload(pairingPayload) ?: run {
-            connectionStatus = "Invalid payload"
-            PairingPrefs.setPaired(context, false)
-            isPaired = false
-            return
-        }
-        if (!parsed.relayUrl.isNullOrBlank()) {
-            val url = ensureClientParam(parsed.relayUrl, "mobile")
-            connectionStatus = "Connecting"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer ${parsed.token}")
-                .build()
-            webSocket = okHttp.newWebSocket(request, object : WebSocketListener() {
-                override fun onOpen(webSocket: WebSocket, response: Response) {
-                    sendPair(parsed.token)
-                    postStatus("Connected")
-                }
-
-                override fun onMessage(webSocket: WebSocket, text: String) {
-                    mainHandler.post { handleIncoming(text) }
-                }
-
-                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    postStatus("Disconnected")
-                    postError(t.message)
-                }
-            })
-            return
-        }
-        val address = parsed.addresses.firstOrNull() ?: run {
-            connectionStatus = "No address"
-            PairingPrefs.setPaired(context, false)
-            isPaired = false
-            return
-        }
-        val url = "ws://$address:${parsed.port}${parsed.wsPath}"
-        connectionStatus = "Connecting"
-        val request = Request.Builder().url(url).build()
-        webSocket = okHttp.newWebSocket(request, object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                sendPair(parsed.token)
-                postStatus("Connected")
-            }
-
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                mainHandler.post { handleIncoming(text) }
-            }
-
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                postStatus("Disconnected")
-                postError(t.message)
             }
         })
     }
 
-    fun resetPairing() {
-        webSocket?.close(1000, "reset")
-        webSocket = null
-        PairingPrefs.setPaired(context, false)
-        PairingPrefs.setPayload(context, "")
-        isPaired = false
-        pairingPayload = ""
-        connectionStatus = "Disconnected"
-        errorMessage = null
-        activeSessionId = null
-        sessions.clear()
-        lastSessionId = null
-        pendingSessionCreateTitle = null
-    }
-
-    fun sendCommand(text: String, sessionId: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        lastSessionId = sessionId
-        appendOutgoing(trimmed, sessionId)
-        val payload = JSONObject()
-            .put("type", "command")
-            .put("data", JSONObject().put("task", trimmed).put("session_id", sessionId))
-        webSocket?.send(payload.toString())
-    }
-
-    fun requestSessionCreate(title: String? = null) {
-        if (!ensureConnected()) {
-            pendingSessionCreateTitle = title
-            return
+    fun chooseFolderSync(): String {
+        pendingFolderResult = null
+        folderLatch = CountDownLatch(1)
+        runOnUiThread {
+            folderPickerLauncher.launch(null)
         }
-        sendSessionCreate(title)
+        folderLatch?.await(60, TimeUnit.SECONDS)
+        return pendingFolderResult ?: bridge.fsHandler.getDefaultVaultDir().absolutePath
     }
 
-    fun setActiveSession(id: String?) {
-        activeSessionId = id
-        if (id != null) {
-            val index = sessions.indexOfFirst { it.id == id }
-            if (index != -1) {
-                val session = sessions[index]
-                sessions[index] = session.copy(unread = 0)
-            }
+    fun chooseFileSync(): String? {
+        pendingFileResult = null
+        fileLatch = CountDownLatch(1)
+        runOnUiThread {
+            filePickerLauncher.launch(arrayOf("*/*"))
         }
-    }
-
-    fun requestFileTree(path: String? = null) {
-        isLoadingFiles = true
-        val data = JSONObject()
-        if (path != null) {
-            data.put("path", path)
-        }
-        val payload = JSONObject()
-            .put("type", "list_files")
-            .put("data", data)
-        webSocket?.send(payload.toString())
-    }
-
-    fun requestFileContent(path: String) {
-        isLoadingContent = true
-        viewingFilePath = path
-        val payload = JSONObject()
-            .put("type", "read_file")
-            .put("data", JSONObject().put("path", path))
-        webSocket?.send(payload.toString())
-    }
-
-    private fun sendPair(token: String) {
-        val payload = JSONObject()
-            .put("type", "pair")
-            .put("data", JSONObject().put("token", token).put("device_name", "Android"))
-        webSocket?.send(payload.toString())
-    }
-
-    private fun sendSessionCreate(title: String?) {
-        val data = JSONObject()
-        if (!title.isNullOrBlank()) {
-            data.put("title", title)
-        }
-        val payload = JSONObject()
-            .put("type", "session_create")
-            .put("data", data)
-        webSocket?.send(payload.toString())
-    }
-
-    private fun ensureConnected(): Boolean {
-        if (webSocket != null && connectionStatus == "Paired") {
-            return true
-        }
-        if (webSocket != null && (connectionStatus == "Connecting" || connectionStatus == "Connected")) {
-            return false
-        }
-        if (pairingPayload.isNotBlank()) {
-            connect()
-        } else {
-            errorMessage = "Not paired"
-        }
-        return false
-    }
-
-    private fun handleIncoming(text: String) {
-        try {
-            val json = JSONObject(text)
-            val type = json.optString("type")
-            if (type == "agent_event") {
-                val data = json.optJSONObject("data") ?: return
-                val sessionId = data.optString("session_id").takeIf { it.isNotBlank() }
-                val event = data.optJSONObject("event") ?: data
-                handleAgentEvent(event, sessionId)
-            } else if (type == "paired") {
-                connectionStatus = "Paired"
-                pendingSessionCreateTitle?.let { title ->
-                    pendingSessionCreateTitle = null
-                    sendSessionCreate(title)
-                }
-            } else if (type == "error") {
-                val message = json.optJSONObject("data")?.optString("message") ?: "Unknown error"
-                errorMessage = message
-                appendIncoming("Error: $message", streaming = false, sessionId = null)
-            } else if (type == "session_list") {
-                val data = json.optJSONObject("data") ?: return
-                val list = data.optJSONArray("sessions") ?: JSONArray()
-                applySessionList(list)
-            } else if (type == "options") {
-                val data = json.optJSONObject("data") ?: return
-                applyOptions(data)
-            } else if (type == "file_tree") {
-                val data = json.optJSONObject("data") ?: return
-                val entriesJson = data.optJSONArray("entries") ?: JSONArray()
-                fileTree = parseFileEntries(entriesJson)
-                isLoadingFiles = false
-            } else if (type == "file_content") {
-                val data = json.optJSONObject("data") ?: return
-                viewingFileContent = data.optString("content")
-                viewingFilePath = data.optString("path")
-                isLoadingContent = false
-            }
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun handleAgentEvent(event: JSONObject, sessionId: String?) {
-        val eventType = event.optString("type")
-        val text = extractText(event) ?: return
-        when (eventType) {
-            "text_delta", "message_chunk" -> appendIncoming(text, streaming = true, sessionId = sessionId)
-            "text_final", "message_final" -> appendIncoming(text, streaming = false, sessionId = sessionId)
-            "error" -> appendIncoming("Error: $text", streaming = false, sessionId = sessionId)
-        }
-    }
-
-    private fun extractText(event: JSONObject): String? {
-        val data = event.optJSONObject("data")
-        return when {
-            data?.has("delta") == true -> data.getString("delta")
-            data?.has("content") == true -> data.getString("content")
-            data?.has("text") == true -> data.getString("text")
-            else -> null
-        }
-    }
-
-    private fun appendOutgoing(text: String, sessionId: String) {
-        val index = sessions.indexOfFirst { it.id == sessionId }
-        if (index == -1) return
-        val message = Message(text = text, isOutgoing = true, timeLabel = "Now", isStreaming = false)
-        val session = sessions[index]
-        sessions[index] = session.copy(
-            messages = session.messages + message,
-            updatedAt = System.currentTimeMillis()
-        )
-    }
-
-    private fun appendIncoming(text: String, streaming: Boolean, sessionId: String?) {
-        val targetId = sessionId ?: lastSessionId ?: sessions.firstOrNull()?.id ?: return
-        val index = sessions.indexOfFirst { it.id == targetId }
-        if (index == -1) return
-        val session = sessions[index]
-        val updatedMessages = session.messages.toMutableList()
-
-        if (streaming) {
-            val last = updatedMessages.lastOrNull()
-            if (last != null && !last.isOutgoing && last.isStreaming) {
-                updatedMessages[updatedMessages.lastIndex] = last.copy(text = last.text + text)
-            } else {
-                updatedMessages.add(Message(text = text, isOutgoing = false, timeLabel = "Now", isStreaming = true))
-            }
-        } else {
-            val last = updatedMessages.lastOrNull()
-            if (last != null && !last.isOutgoing && last.isStreaming) {
-                updatedMessages[updatedMessages.lastIndex] = last.copy(text = text, isStreaming = false)
-            } else {
-                updatedMessages.add(Message(text = text, isOutgoing = false, timeLabel = "Now", isStreaming = false))
-            }
-        }
-
-        val unread = if (activeSessionId == targetId) 0 else session.unread + 1
-        sessions[index] = session.copy(
-            messages = updatedMessages,
-            updatedAt = System.currentTimeMillis(),
-            unread = unread
-        )
-    }
-
-    private fun parsePairingPayload(payload: String): PairingPayload? {
-        return try {
-            val json = JSONObject(payload)
-            val token = json.getString("token")
-            val port = json.optInt("port", 0)
-            val addressesJson = json.optJSONArray("addresses") ?: JSONArray()
-            val addresses = mutableListOf<String>()
-            for (i in 0 until addressesJson.length()) {
-                addresses.add(addressesJson.getString(i))
-            }
-            val wsPath = json.optString("ws_path", "/ws")
-            val relayUrl = json.optString("relay_url").ifBlank { null }
-            PairingPayload(token, port, addresses, wsPath, relayUrl)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun ensureClientParam(relayUrl: String, client: String): String {
-        return if (relayUrl.contains("client=")) {
-            relayUrl
-        } else if (relayUrl.contains("?")) {
-            "$relayUrl&client=$client"
-        } else {
-            "$relayUrl?client=$client"
-        }
-    }
-
-    private fun applySessionList(list: JSONArray) {
-        val summaries = mutableListOf<SessionSummary>()
-        for (i in 0 until list.length()) {
-            val item = list.optJSONObject(i) ?: continue
-            summaries.add(
-                SessionSummary(
-                    id = item.optString("id"),
-                    title = item.optString("title"),
-                    sessionType = item.optString("session_type"),
-                    createdAt = item.optLong("created_at"),
-                    updatedAt = item.optLong("updated_at"),
-                    lastMessagePreview = item.optString("last_message_preview").ifBlank { null },
-                    lastMessageRole = item.optString("last_message_role").ifBlank { null },
-                    messageCount = item.optInt("message_count")
-                )
-            )
-        }
-        val existing = sessions.associateBy { it.id }
-        val next = summaries.map { summary ->
-            val previous = existing[summary.id]
-            AgentSession(
-                id = summary.id,
-                name = summary.title,
-                isPinned = previous?.isPinned ?: false,
-                unread = previous?.unread ?: 0,
-                messages = previous?.messages ?: emptyList(),
-                updatedAt = summary.updatedAt,
-                createdAt = summary.createdAt,
-                lastMessagePreview = summary.lastMessagePreview,
-                lastMessageRole = summary.lastMessageRole
-            )
-        }
-        sessions.clear()
-        sessions.addAll(next)
-        if (activeSessionId != null && sessions.none { it.id == activeSessionId }) {
-            activeSessionId = null
-        }
-    }
-
-    private fun applyOptions(data: JSONObject) {
-        val workspacesJson = data.optJSONArray("workspaces") ?: JSONArray()
-        val profilesJson = data.optJSONArray("agent_profiles") ?: JSONArray()
-        val nextWorkspaces = mutableListOf<WorkspaceOption>()
-        val nextProfiles = mutableListOf<AgentProfileOption>()
-        for (i in 0 until workspacesJson.length()) {
-            val item = workspacesJson.optJSONObject(i) ?: continue
-            nextWorkspaces.add(
-                WorkspaceOption(
-                    id = item.optString("id"),
-                    name = item.optString("name"),
-                    path = item.optString("path")
-                )
-            )
-        }
-        for (i in 0 until profilesJson.length()) {
-            val item = profilesJson.optJSONObject(i) ?: continue
-            nextProfiles.add(
-                AgentProfileOption(
-                    id = item.optString("id"),
-                    name = item.optString("name"),
-                    provider = item.optString("provider"),
-                    model = item.optString("model")
-                )
-            )
-        }
-        workspaces = nextWorkspaces
-        agentProfiles = nextProfiles
-        selectedWorkspaceId = data.optString("selected_workspace_id").ifBlank { selectedWorkspaceId }
-        selectedProfileId = data.optString("selected_profile_id").ifBlank { selectedProfileId }
-    }
-
-    private fun parseFileEntries(array: JSONArray): List<MobileFileEntry> {
-        val result = mutableListOf<MobileFileEntry>()
-        for (i in 0 until array.length()) {
-            val item = array.optJSONObject(i) ?: continue
-            val children = if (item.has("children") && !item.isNull("children")) {
-                parseFileEntries(item.getJSONArray("children"))
-            } else {
-                null
-            }
-            result.add(
-                MobileFileEntry(
-                    name = item.optString("name"),
-                    relativePath = item.optString("relative_path"),
-                    isDir = item.optBoolean("is_dir"),
-                    children = children
-                )
-            )
-        }
-        return result
-    }
-
-    fun selectWorkspace(id: String) {
-        selectedWorkspaceId = id
-        val payload = JSONObject()
-            .put("type", "select_workspace")
-            .put("data", JSONObject().put("workspace_id", id))
-        webSocket?.send(payload.toString())
-    }
-
-    fun selectAgentProfile(id: String) {
-        selectedProfileId = id
-        val payload = JSONObject()
-            .put("type", "select_agent_profile")
-            .put("data", JSONObject().put("profile_id", id))
-        webSocket?.send(payload.toString())
-    }
-
-    private fun postStatus(status: String) {
-        mainHandler.post { connectionStatus = status }
-    }
-
-    private fun postError(message: String?) {
-        mainHandler.post { errorMessage = message }
-    }
-}
-
-@Composable
-private fun PairingScreen(store: MobileGatewayStore) {
-    var payload by remember { mutableStateOf(store.pairingPayload) }
-    var showScanner by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val cameraGranted = remember { mutableStateOf(isCameraGranted(context)) }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        cameraGranted.value = granted
-        if (granted) {
-            showScanner = true
-        }
-    }
-
-    if (showScanner) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            QrScannerView(
-                onResult = { code ->
-                    payload = code
-                    store.applyPairing(code)
-                    showScanner = false
-                }
-            )
-            IconButton(
-                onClick = { showScanner = false },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-            ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
-            }
-        }
-        return
-    }
-
-    Scaffold { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF2F2F7))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.QrCodeScanner,
-                contentDescription = null,
-                tint = Color(0xFF007AFF),
-                modifier = Modifier.size(72.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Pair with Desktop", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Scan the QR code shown in Lumina Desktop > Settings > Mobile Connect.",
-                textAlign = TextAlign.Center,
-                color = Color(0xFF8E8E93)
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-            Button(onClick = {
-                if (cameraGranted.value) {
-                    showScanner = true
-                } else {
-                    permissionLauncher.launch(Manifest.permission.CAMERA)
-                }
-            }) {
-                Text("Scan QR")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            TextField(
-                value = payload,
-                onValueChange = { payload = it },
-                placeholder = { Text("Paste pairing payload") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(onClick = {
-                if (payload.trim().isNotEmpty()) {
-                    store.applyPairing(payload.trim())
-                }
-            }) {
-                Text("Pair")
-            }
-        }
-    }
-}
-
-@Composable
-private fun QrScannerView(onResult: (String) -> Unit) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val previewView = remember { PreviewView(context) }
-    var hasResult by remember { mutableStateOf(false) }
-    val transition = rememberInfiniteTransition(label = "scan-line")
-    val scanProgress by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scan-progress"
-    )
-    val boxSize = 240.dp
-    val lineHeight = 2.dp
-    val density = LocalDensity.current
-    val lineOffset = with(density) {
-        val boxPx = boxSize.toPx()
-        val linePx = lineHeight.toPx()
-        ((boxPx - linePx) * scanProgress).toDp()
-    }
-
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val executor = ContextCompat.getMainExecutor(context)
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        val listener = Runnable {
-            val cameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build().apply {
-                setSurfaceProvider(previewView.surfaceProvider)
-            }
-
-            val options = BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                .build()
-            val scanner = BarcodeScanning.getClient(options)
-
-            val analysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-
-            analysis.setAnalyzer(executor) { imageProxy ->
-                processImageProxy(scanner, imageProxy, hasResult) { value ->
-                    if (!hasResult) {
-                        hasResult = true
-                        onResult(value)
-                    }
-                }
-            }
-
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview,
-                analysis
-            )
-        }
-
-        cameraProviderFuture.addListener(listener, executor)
-        onDispose {
-            try {
-                ProcessCameraProvider.getInstance(context).get().unbindAll()
-            } catch (_: Exception) {
-            }
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(boxSize)
-                .border(2.dp, Color(0xFF00C853), RoundedCornerShape(16.dp))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(lineHeight)
-                    .offset(y = lineOffset)
-                    .background(Color(0xFF00C853), RectangleShape)
-            )
-        }
-    }
-}
-
-private fun processImageProxy(
-    scanner: com.google.mlkit.vision.barcode.BarcodeScanner,
-    imageProxy: ImageProxy,
-    hasResult: Boolean,
-    onResult: (String) -> Unit
-) {
-    val mediaImage = imageProxy.image
-    if (mediaImage != null && !hasResult) {
-        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-        scanner.process(image)
-            .addOnSuccessListener { barcodes ->
-                val value = barcodes.firstOrNull()?.rawValue
-                if (value != null) {
-                    onResult(value)
-                }
-            }
-            .addOnCompleteListener {
-                imageProxy.close()
-            }
-    } else {
-        imageProxy.close()
-    }
-}
-
-@Composable
-private fun ChatListScreen(store: MobileGatewayStore) {
-    var searchText by remember { mutableStateOf("") }
-    var showMenu by remember { mutableStateOf(false) }
-    var showRePairConfirm by remember { mutableStateOf(false) }
-    var showWorkspaceMenu by remember { mutableStateOf(false) }
-    var showProfileMenu by remember { mutableStateOf(false) }
-    val query = searchText.trim()
-    val filtered = store.sessions
-        .filter { session ->
-            if (query.isEmpty()) {
-                true
-            } else {
-                session.name.contains(query, ignoreCase = true) ||
-                    (session.messages.lastOrNull()?.text?.contains(query, ignoreCase = true) == true)
-            }
-        }
-        .sortedWith(compareByDescending<AgentSession> { it.isPinned }.thenByDescending { it.updatedAt })
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Chats", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    TextButton(onClick = {}) { Text("Edit", color = Color(0xFF007AFF)) }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        store.activeScreen = "file_browser"
-                        if (store.fileTree.isEmpty()) {
-                            store.requestFileTree()
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.FolderOpen,
-                            contentDescription = "Files",
-                            tint = Color(0xFF007AFF)
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
-                        }
-                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("重新配对") },
-                                onClick = {
-                                    showMenu = false
-                                    showRePairConfirm = true
-                                }
-                            )
-                        }
-                    }
-                    TextButton(onClick = { store.requestSessionCreate() }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Compose", tint = Color(0xFF007AFF))
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF2F2F7))
-        ) {
-            if (store.workspaces.isNotEmpty() || store.agentProfiles.isNotEmpty()) {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    if (store.workspaces.isNotEmpty()) {
-                        Box {
-                            val selectedName = store.workspaces.find { it.id == store.selectedWorkspaceId }?.name
-                                ?: store.workspaces.first().name
-                            TextButton(onClick = { showWorkspaceMenu = true }) {
-                                Text("Workspace: $selectedName", color = Color(0xFF1C1C1E))
-                            }
-                            DropdownMenu(expanded = showWorkspaceMenu, onDismissRequest = { showWorkspaceMenu = false }) {
-                                store.workspaces.forEach { workspace ->
-                                    DropdownMenuItem(
-                                        text = { Text(workspace.name) },
-                                        onClick = {
-                                            showWorkspaceMenu = false
-                                            store.selectWorkspace(workspace.id)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    if (store.agentProfiles.isNotEmpty()) {
-                        Box {
-                            val selectedName = store.agentProfiles.find { it.id == store.selectedProfileId }?.name
-                                ?: store.agentProfiles.first().name
-                            TextButton(onClick = { showProfileMenu = true }) {
-                                Text("Agent: $selectedName", color = Color(0xFF1C1C1E))
-                            }
-                            DropdownMenu(expanded = showProfileMenu, onDismissRequest = { showProfileMenu = false }) {
-                                store.agentProfiles.forEach { profile ->
-                                    DropdownMenuItem(
-                                        text = { Text(profile.name) },
-                                        onClick = {
-                                            showProfileMenu = false
-                                            store.selectAgentProfile(profile.id)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            TextField(
-                value = searchText,
-                onValueChange = { searchText = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                placeholder = { Text("Search") }
-            )
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(filtered) { chat ->
-                    ChatRow(chat = chat, onClick = { store.setActiveSession(chat.id) }, onTogglePin = {
-                        val index = store.sessions.indexOfFirst { it.id == chat.id }
-                        if (index != -1) {
-                            val session = store.sessions[index]
-                            store.sessions[index] = session.copy(isPinned = !session.isPinned)
-                        }
-                    })
-                    Divider(color = Color(0xFFE5E5EA))
-                }
-            }
-        }
-    }
-
-    if (showRePairConfirm) {
-        AlertDialog(
-            onDismissRequest = { showRePairConfirm = false },
-            title = { Text("重新配对") },
-            text = { Text("将断开当前连接并返回扫码页面。") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showRePairConfirm = false
-                    store.resetPairing()
-                }) { Text("重新配对") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRePairConfirm = false }) { Text("取消") }
-            }
-        )
-    }
-}
-
-@Composable
-private fun ChatRow(chat: AgentSession, onClick: () -> Unit, onTogglePin: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .background(Color(0xFFFFFFFF))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .background(Color(0xFFD1D1D6), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = chat.name.take(1), color = Color.White, fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = chat.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(text = formatTimeLabel(chat.updatedAt), fontSize = 12.sp, color = Color(0xFF8E8E93))
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = chat.messages.lastOrNull()?.text ?: chat.lastMessagePreview.orEmpty(),
-                    fontSize = 14.sp,
-                    color = Color(0xFF8E8E93),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                if (chat.unread > 0) {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .background(Color(0xFF007AFF), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = chat.unread.toString(), color = Color.White, fontSize = 12.sp)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = if (chat.isPinned) "PIN" else "",
-            fontSize = 10.sp,
-            color = Color(0xFF8E8E93),
-            modifier = Modifier.clickable { onTogglePin() }
-        )
-    }
-}
-
-@Composable
-private fun ChatDetailScreen(store: MobileGatewayStore, sessionIndex: Int) {
-    val session = store.sessions[sessionIndex]
-    var draft by remember { mutableStateOf("") }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(session.name, fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = { store.setActiveSession(null) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF2F2F7))
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(session.messages) { msg ->
-                    MessageBubble(message = msg)
-                }
-            }
-            Divider(color = Color(0xFFE5E5EA))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF9F9FB))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message") }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = {
-                    val trimmed = draft.trim()
-                    if (trimmed.isNotEmpty()) {
-                        store.sendCommand(trimmed, session.id)
-                        draft = ""
-                    }
-                }) {
-                    Text("Send")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MessageBubble(message: Message) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isOutgoing) Arrangement.End else Arrangement.Start
-    ) {
-        val textColor = if (message.isOutgoing) Color.White else Color.Black
-        val linkColor = if (message.isOutgoing) Color.White else Color(0xFF007AFF)
-        Column(
-            modifier = Modifier
-                .background(
-                    if (message.isOutgoing) Color(0xFF007AFF) else Color(0xFFE5E5EA),
-                    RoundedCornerShape(16.dp)
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            MarkdownMessageText(
-                text = message.text,
-                color = textColor,
-                linkColor = linkColor,
-                fontSize = 14.sp
-            )
-            Text(
-                text = message.timeLabel,
-                color = if (message.isOutgoing) Color(0xCCFFFFFF) else Color(0xFF6D6D72),
-                fontSize = 10.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun MarkdownMessageText(
-    text: String,
-    color: Color,
-    linkColor: Color,
-    fontSize: androidx.compose.ui.unit.TextUnit
-) {
-    val context = LocalContext.current
-    val markwon = remember(context) {
-        Markwon.builder(context)
-            .usePlugin(LinkifyPlugin.create())
-            .build()
-    }
-    AndroidView(
-        factory = { ctx ->
-            TextView(ctx).apply {
-                setTextColor(color.toArgb())
-                setLinkTextColor(linkColor.toArgb())
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize.value)
-                setLineSpacing(0f, 1.2f)
-                movementMethod = LinkMovementMethod.getInstance()
-            }
-        },
-        update = { view ->
-            view.setTextColor(color.toArgb())
-            view.setLinkTextColor(linkColor.toArgb())
-            view.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize.value)
-            markwon.setMarkdown(view, text)
-        }
-    )
-}
-
-@Composable
-private fun FileBrowserScreen(store: MobileGatewayStore) {
-    var folderStack by remember { mutableStateOf(listOf<MobileFileEntry>()) }
-    val currentEntries = if (folderStack.isEmpty()) {
-        store.fileTree
-    } else {
-        folderStack.last().children ?: emptyList()
-    }
-    val title = if (folderStack.isEmpty()) "Files" else folderStack.last().name
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title, fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (folderStack.isNotEmpty()) {
-                            folderStack = folderStack.dropLast(1)
-                        } else {
-                            store.activeScreen = "chat_list"
-                        }
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        if (store.isLoadingFiles && store.fileTree.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Loading...", color = Color(0xFF8E8E93))
-            }
-        } else if (currentEntries.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(if (folderStack.isEmpty()) "No files" else "Empty folder", color = Color(0xFF8E8E93))
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(Color(0xFFF2F2F7))
-            ) {
-                items(currentEntries) { entry ->
-                    FileEntryRow(entry = entry, onClick = {
-                        if (entry.isDir) {
-                            folderStack = folderStack + entry
-                        } else {
-                            store.requestFileContent(entry.relativePath)
-                            store.activeScreen = "file_content"
-                        }
-                    })
-                    Divider(color = Color(0xFFE5E5EA))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FileEntryRow(entry: MobileFileEntry, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val iconText = if (entry.isDir) "\uD83D\uDCC1" else fileIconEmoji(entry.name)
-        Text(
-            text = iconText,
-            fontSize = 20.sp,
-            modifier = Modifier.width(32.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = entry.name,
-            fontSize = 15.sp,
-            color = Color(0xFF1C1C1E),
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-private fun fileIconEmoji(name: String): String {
-    return when {
-        name.endsWith(".md") || name.endsWith(".txt") -> "\uD83D\uDCC4"
-        name.endsWith(".pdf") -> "\uD83D\uDCC3"
-        name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") -> "\uD83D\uDDBC"
-        else -> "\uD83D\uDCC4"
-    }
-}
-
-@Composable
-private fun FileContentScreen(store: MobileGatewayStore) {
-    val fileName = store.viewingFilePath?.substringAfterLast("/") ?: "File"
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(fileName, fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        store.activeScreen = "file_browser"
-                        store.viewingFileContent = null
-                        store.viewingFilePath = null
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        if (store.isLoadingContent) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Loading...", color = Color(0xFF8E8E93))
-            }
-        } else if (store.viewingFileContent != null) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp)
-            ) {
-                item {
-                    MarkdownMessageText(
-                        text = store.viewingFileContent ?: "",
-                        color = Color.Black,
-                        linkColor = Color(0xFF007AFF),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        } else {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Failed to load file", color = Color(0xFF8E8E93))
-            }
-        }
-    }
-}
-
-private fun isCameraGranted(context: Context): Boolean {
-    return ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-}
-
-private fun formatTimeLabel(timestamp: Long): String {
-    val zone = ZoneId.systemDefault()
-    val dateTime = Instant.ofEpochMilli(timestamp).atZone(zone)
-    val now = ZonedDateTime.now(zone)
-    val pattern = if (dateTime.toLocalDate() == now.toLocalDate()) "HH:mm" else "MMM d"
-    return DateTimeFormatter.ofPattern(pattern).format(dateTime)
-}
-
-private object PairingPrefs {
-    private const val PREFS = "lumina_mobile"
-    private const val KEY_PAIRED = "paired"
-    private const val KEY_PAYLOAD = "pairing_payload"
-
-    fun isPaired(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_PAIRED, false)
-    }
-
-    fun setPaired(context: Context, paired: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_PAIRED, paired)
-            .apply()
-    }
-
-    fun getPayload(context: Context): String {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_PAYLOAD, "") ?: ""
-    }
-
-    fun setPayload(context: Context, payload: String) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_PAYLOAD, payload)
-            .apply()
+        fileLatch?.await(60, TimeUnit.SECONDS)
+        return pendingFileResult
     }
 }

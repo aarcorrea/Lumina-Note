@@ -15,6 +15,7 @@ export {
   invoke,
   isTauri,
   isTauriAvailable,
+  isAndroid,
   listen,
   getVersion,
   transformCallback,

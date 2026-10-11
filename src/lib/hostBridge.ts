@@ -30,7 +30,16 @@ declare global {
     __TAURI__?: {
       core?: { invoke?: TauriInternals["invoke"] };
     };
+    __ANDROID_NATIVE__?: {
+      postMessage: (message: string) => void;
+    };
+    __IS_ANDROID__?: boolean;
   }
+}
+
+export function isAndroid(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(window.__IS_ANDROID__ || window.__ANDROID_NATIVE__);
 }
 
 function getInternals(): TauriInternals | undefined {
@@ -51,7 +60,8 @@ export function isTauri(): boolean {
   if (typeof window === "undefined") return false;
   return (
     typeof getInternals()?.invoke === "function" ||
-    typeof window.__TAURI__?.core?.invoke === "function"
+    typeof window.__TAURI__?.core?.invoke === "function" ||
+    isAndroid()
   );
 }
 
