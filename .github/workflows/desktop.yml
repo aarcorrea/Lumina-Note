@@ -85,7 +85,7 @@ jobs:
       - name: Install opencode dependencies
         shell: bash
         working-directory: thirdparty/opencode
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Build opencode server bundle
         shell: bash
