@@ -1,3 +1,4 @@
+import type { AIConfig } from "@/services/ai/ai";
 import { PROVIDER_MODELS } from "./providers/models";
 import type { LLMProviderType } from "./types";
 
